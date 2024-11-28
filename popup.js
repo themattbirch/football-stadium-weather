@@ -38,7 +38,6 @@ async function handleTeamSelection(event) {
     if (!selectedTeam) return;
 
     try {
-        // Load stadium coordinates from our JSON file
         console.log('📍 Fetching stadium data...');
         const response = await fetch('data/stadium_coordinates.json');
         if (!response.ok) {
@@ -46,8 +45,30 @@ async function handleTeamSelection(event) {
         }
         
         const stadiumData = await response.json();
-        console.log('📍 Available NFL stadiums:', Object.keys(stadiumData.nfl));
-        console.log('📍 Available NCAA stadiums:', Object.keys(stadiumData.ncaa));
+        
+        // Detailed logging of the data structure
+        console.log('📍 Full stadium data:', {
+            nflCount: Object.keys(stadiumData.nfl || {}).length,
+            ncaaCount: Object.keys(stadiumData.ncaa || {}).length,
+            firstNFLStadium: Object.entries(stadiumData.nfl || {})[0],
+            firstNCAA: Object.entries(stadiumData.ncaa || {})[0],
+            dataStructure: {
+                hasNFL: 'nfl' in stadiumData,
+                hasNCAA: 'ncaa' in stadiumData,
+                topLevelKeys: Object.keys(stadiumData)
+            }
+        });
+
+        // Log the first few entries to see structure
+        console.log('📍 First 3 NFL stadiums:', 
+            Object.entries(stadiumData.nfl || {}).slice(0, 3)
+                .map(([name, info]) => ({name, team: info.team}))
+        );
+
+        // Check if Rose Bowl exists in the data
+        const roseBowl = Object.entries(stadiumData.ncaa || {})
+            .find(([name]) => name.includes('Rose Bowl'));
+        console.log('🌹 Rose Bowl entry:', roseBowl);
 
         // Find the matching stadium
         let stadium;
