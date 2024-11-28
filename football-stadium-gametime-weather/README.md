@@ -1,1 +1,0 @@
-# Football Stadium Gametime Weather
