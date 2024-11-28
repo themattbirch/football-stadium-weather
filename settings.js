@@ -1,5 +1,6 @@
 class SettingsManager {
   constructor() {
+    this.modal = null;
     this.defaultSettings = {
       alerts: {
         highTemp: 90,
@@ -77,5 +78,52 @@ class SettingsManager {
     `;
 
     return modal;
+  }
+
+  openModal() {
+    if (this.modal) this.closeModal();
+    this.modal = this.createSettingsModal();
+    document.body.appendChild(this.modal);
+    
+    // Add event listeners
+    const saveBtn = this.modal.querySelector('#saveSettings');
+    const closeBtn = this.modal.querySelector('#closeSettings');
+    
+    saveBtn.addEventListener('click', () => this.saveAndClose());
+    closeBtn.addEventListener('click', () => this.closeModal());
+    
+    // Close when clicking outside the modal
+    this.modal.addEventListener('click', (e) => {
+      if (e.target === this.modal) this.closeModal();
+    });
+  }
+
+  closeModal() {
+    if (this.modal) {
+      this.modal.remove();
+      this.modal = null;
+    }
+  }
+
+  saveAndClose() {
+    const newSettings = {
+      alerts: {
+        highTemp: parseInt(this.modal.querySelector('#highTemp').value),
+        lowTemp: parseInt(this.modal.querySelector('#lowTemp').value),
+        windSpeed: parseInt(this.modal.querySelector('#windSpeed').value),
+        rainAmount: this.settings.alerts.rainAmount,
+        snowAmount: this.settings.alerts.snowAmount
+      },
+      display: {
+        showTrends: this.modal.querySelector('#showTrends').checked,
+        showAlerts: this.settings.display.showAlerts,
+        temperature: this.modal.querySelector('#tempUnit').value,
+        refreshInterval: this.settings.display.refreshInterval
+      }
+    };
+    
+    this.saveSettings(newSettings);
+    this.closeModal();
+    window.dispatchEvent(new Event('settingsChanged'));
   }
 } 

@@ -3,16 +3,21 @@ const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
+  mode: 'production',
   entry: './src/index.js',
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
+    clean: true
   },
   module: {
     rules: [
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
+        include: [
+          path.resolve(__dirname, 'styles.css'),
+        ],
       },
       {
         test: /\.(js|jsx|ts|tsx)$/,
@@ -37,7 +42,7 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: 'src/data', to: 'src/data' }
+        { from: 'src/data', to: 'data' }
       ],
     }),
   ]

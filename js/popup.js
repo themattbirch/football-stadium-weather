@@ -5,6 +5,8 @@ class GameDayWeatherUI {
     this.refreshButton = document.getElementById('refresh');
     this.settingsButton = document.getElementById('settings');
     
+    this.settingsManager = new SettingsManager();
+    
     this.initializeEventListeners();
     this.loadStadiumData();
   }
@@ -16,9 +18,35 @@ class GameDayWeatherUI {
   }
 
   async loadStadiumData() {
-    const response = await fetch(chrome.runtime.getURL('data/stadium_coordinates.json'));
-    this.stadiums = await response.json();
-    this.refreshWeather();
+    try {
+        const response = await fetch(chrome.runtime.getURL('data/stadium_coordinates.json'));
+        const data = await response.json();
+        
+        // Combine NFL and NCAA stadiums
+        this.stadiums = [
+            ...Object.entries(data.nfl).map(([name, info]) => ({
+                name,
+                latitude: info.latitude,
+                longitude: info.longitude,
+                team: info.team,
+                location: info.location,
+                defaultGameTime: "13:00:00" // Default time for NFL games
+            })),
+            ...Object.entries(data.ncaa).map(([name, info]) => ({
+                name,
+                latitude: info.latitude,
+                longitude: info.longitude,
+                team: info.team,
+                location: info.location,
+                defaultGameTime: "13:00:00" // Default time for NCAA games
+            }))
+        ];
+        
+        this.refreshWeather();
+    } catch (error) {
+        console.error('Error loading stadium data:', error);
+        this.weatherList.innerHTML = '<div class="error">Error loading stadium data</div>';
+    }
   }
 
   async refreshWeather() {
@@ -63,23 +91,37 @@ class GameDayWeatherUI {
     const card = document.createElement('div');
     card.className = 'game-card';
     
+    if (!weather || !weather.weather) {
+      card.innerHTML = `
+        <div class="game-info">
+          <h3>${stadium.name}</h3>
+          <div class="error">Weather data unavailable</div>
+        </div>`;
+      return card;
+    }
+    
+    const alertsHtml = alerts && alerts.length 
+      ? `<div class="alerts">${alerts.join(', ')}</div>` 
+      : '';
+    
     card.innerHTML = `
       <img class="weather-icon" 
            src="https://openweathermap.org/img/w/${weather.weather[0].icon}.png" 
            alt="${weather.weather[0].description}">
       <div class="game-info">
         <h3>${stadium.name}</h3>
+        <div class="team">${stadium.team}</div>
+        <div class="location">${stadium.location}</div>
         <div class="temperature">${Math.round(weather.main.temp)}°F</div>
         <div class="conditions">${weather.weather[0].description}</div>
-        ${alerts.length ? `<div class="alerts">${alerts.join(', ')}</div>` : ''}
-      </div>
-    `;
+        ${alertsHtml}
+      </div>`;
 
     return card;
   }
 
   openSettings() {
-    // Implementation for settings modal
+    this.settingsManager.openModal();
   }
 
   async showWeatherComparison(stadium, weather) {

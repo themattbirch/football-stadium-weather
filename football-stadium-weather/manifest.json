@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "GameDay Weather",
+  "version": "1.0.0",
+  "description": "Get weather information for NFL and College Football stadiums",
+  "permissions": [
+    "storage",
+    "geolocation",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://api.openweathermap.org/*"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "icons/football16.png",
+      "48": "icons/football48.png",
+      "128": "icons/football128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "data/stadium_coordinates.json"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "icons": {
+    "16": "icons/football16.png",
+    "48": "icons/football48.png",
+    "128": "icons/football128.png"
+  }
+} 

@@ -94,6 +94,7 @@ button:hover {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 }
 
 .settings-content {
@@ -102,6 +103,8 @@ button:hover {
   border-radius: 8px;
   width: 80%;
   max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .settings-section {
@@ -542,4 +545,83 @@ canvas {
   padding: 2px 6px;
   border-radius: 3px;
   background: rgba(0,0,0,0.2);
+}
+
+.date-selector input[type="date"] {
+  background-color: var(--chalk-white);
+  border: 1px solid var(--leather-tan);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--stadium-gray);
+  font-family: inherit;
+  width: 150px;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--stadium-gray);
+}
+
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--field-green);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.team-name {
+  color: var(--stadium-gray);
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.weather-details {
+  margin-top: 8px;
+  font-size: 0.9em;
+}
+
+.detail {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+  color: var(--stadium-gray);
+}
+
+.detail .label {
+  font-weight: 500;
+}
+
+.detail .value {
+  color: var(--pigskin-brown);
+}
+
+.settings-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settings-footer button {
+  min-width: 80px;
 } 

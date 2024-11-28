@@ -1,4 +1,4 @@
-import './styles/styles.css';
+import '../styles.css';
 import { WeatherCard } from './components/WeatherCard';
 import { PlayImpactAnalyzer } from './utils/playImpactAnalyzer';
 
@@ -50,7 +50,7 @@ class GameDayWeather {
     console.log('Setting up event listeners');
     
     const refreshButton = document.querySelector('#refresh');
-    const dateInput = document.querySelector('#gameDate');
+    const dateInput = document.querySelector('#weather-date');
     const settingsButton = document.querySelector('#settings');
     const testButton = document.querySelector('#test');
 
@@ -150,7 +150,7 @@ class GameDayWeather {
     console.log('Setting loading state');
     weatherList.innerHTML = '<div class="loading">Loading weather data...</div>';
 
-    const dateInput = document.getElementById('gameDate');
+    const dateInput = document.getElementById('weather-date');
     if (!dateInput) {
       console.error('Date input not found');
       return;
