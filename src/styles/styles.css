@@ -1,0 +1,513 @@
+:root {
+  --pigskin-brown: #8B4513;
+  --field-green: #2E5A27;
+  --chalk-white: #F5F5F5;
+  --leather-tan: #D2B48C;
+  --stadium-gray: #4A4A4A;
+}
+
+body {
+  width: 400px;
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: var(--chalk-white);
+}
+
+.container {
+  padding: 15px;
+}
+
+.header {
+  background-color: var(--field-green);
+  color: var(--chalk-white);
+  padding: 10px;
+  border-radius: 8px 8px 0 0;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5em;
+  text-align: center;
+}
+
+.weather-container {
+  background-color: white;
+  border: 2px solid var(--leather-tan);
+  border-radius: 0 0 8px 8px;
+  padding: 15px;
+}
+
+.game-card {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--leather-tan);
+  border-radius: 6px;
+  background-color: white;
+}
+
+.weather-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.game-info {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+
+.temperature {
+  font-size: 1.2em;
+  color: var(--pigskin-brown);
+  font-weight: bold;
+}
+
+.wind-direction-viz {
+  background: var(--field-green);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+  position: relative;
+  height: 200px;
+}
+
+.field-overlay {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255,255,255,0.1) 0%,
+    rgba(255,255,255,0.2) 50%,
+    rgba(255,255,255,0.1) 100%
+  );
+  border: 2px solid var(--leather-tan);
+  border-radius: 4px;
+}
+
+.wind-arrow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+  width: 80px;
+  height: 4px;
+  background: white;
+}
+
+.arrow-head {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid white;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+}
+
+.wind-speed {
+  position: absolute;
+  left: 50%;
+  top: -20px;
+  transform: translateX(-50%);
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.field-markings {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.goal-posts {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 60px;
+  border: 2px solid white;
+  border-left: none;
+}
+
+.yard-lines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255,255,255,0.3) 0px,
+    rgba(255,255,255,0.3) 1px,
+    transparent 1px,
+    transparent 20px
+  );
+}
+
+.wind-impact {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  color: white;
+  font-size: 14px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.impact-label {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.impact-value {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.2);
+}
+
+.notification-center {
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--leather-tan);
+}
+
+.notification-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--leather-tan);
+}
+
+.notification-item.high {
+  border-left: 4px solid #dc3545;
+}
+
+.notification-item.medium {
+  border-left: 4px solid #ffc107;
+}
+
+.notification-item.low {
+  border-left: 4px solid #28a745;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notification-text {
+  flex-grow: 1;
+}
+
+.notification-text .message {
+  margin: 0;
+  font-size: 14px;
+}
+
+.notification-text .timestamp {
+  font-size: 12px;
+  color: var(--stadium-gray);
+}
+
+.dismiss-notification {
+  background: none;
+  border: none;
+  color: var(--stadium-gray);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.dismiss-notification:hover {
+  color: var(--pigskin-brown);
+}
+
+.chart-container {
+  margin: 15px 0;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+.date-selector input[type="date"] {
+  background-color: var(--chalk-white);
+  border: 1px solid var(--leather-tan);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--stadium-gray);
+  font-family: inherit;
+  width: 150px;
+}
+
+.date-selector input[type="date"]::before {
+  content: 'Weather Date';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--stadium-gray);
+  pointer-events: none;
+}
+
+.date-selector input[type="date"]:focus {
+  outline: none;
+  border-color: var(--pigskin-brown);
+  box-shadow: 0 0 0 2px rgba(139, 69, 19, 0.2);
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--stadium-gray);
+}
+
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--field-green);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.error-message button {
+  background-color: var(--field-green);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.error-message button:hover {
+  background-color: #234720;
+}
+
+.api-key-missing {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.settings-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 8px;
+  width: 400px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.settings-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.settings-buttons {
+  padding: 15px;
+  border-top: 1px solid var(--leather-tan);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: white;
+  border-radius: 0 0 8px 8px;
+  position: sticky;
+  bottom: 0;
+}
+
+.setting-group {
+  margin: 15px 0;
+}
+
+.setting-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--stadium-gray);
+}
+
+.setting-group select {
+  width: 100%;
+  padding: 5px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.input-group input {
+  width: 60px;
+  padding: 3px 5px;
+}
+
+.settings-section {
+  margin: 15px 0;
+}
+
+.settings-section label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--stadium-gray);
+}
+
+.settings-section input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--leather-tan);
+  border-radius: 4px;
+}
+
+.settings-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.settings-buttons button:first-child {
+  background-color: var(--field-green);
+  color: white;
+}
+
+.settings-buttons button:last-child {
+  background-color: var(--stadium-gray);
+  color: white;
+}
+
+/* Add all other CSS classes we created earlier */
+
+.weather-icon-container {
+  text-align: center;
+  padding: 5px;
+}
+
+.team-name {
+  color: var(--stadium-gray);
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.weather-details {
+  margin-top: 8px;
+  font-size: 0.9em;
+}
+
+.detail {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+  color: var(--stadium-gray);
+}
+
+.detail .label {
+  font-weight: 500;
+}
+
+.detail .value {
+  color: var(--pigskin-brown);
+}
+
+.precipitation {
+  color: #0077be;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding: 0 10px;
+}
+
+.secondary-controls {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.stadium-selector,
+.game-features {
+  flex: 1;
+  max-width: 180px;
+}
+
+.stadium-selector select,
+.game-features select {
+  width: 100%;
+  background-color: var(--chalk-white);
+  border: 1px solid var(--leather-tan);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--stadium-gray);
+  font-family: inherit;
+}
+
+.date-selector {
+  flex: 0 0 auto;
+}
+
+.date-selector label {
+  color: var(--chalk-white);
+  margin-right: 8px;
+}
+
+.setting-option {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.setting-option select,
+.setting-option input[type="number"] {
+  width: 120px;
+  padding: 4px 8px;
+}
+  
