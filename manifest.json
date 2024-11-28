@@ -22,15 +22,19 @@
   "background": {
     "service_worker": "background.js"
   },
-  "web_accessible_resources": [{
-    "resources": [
-      "data/stadium_coordinates.json"
-    ],
-    "matches": ["<all_urls>"]
-  }],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "data/stadium_coordinates.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
   "icons": {
     "16": "icons/football16.png",
     "48": "icons/football48.png",
     "128": "icons/football128.png"
   }
-} 
+}

@@ -1,14 +1,16 @@
+// index.js
+
 import '../styles.css';
 import { WeatherCard } from './components/WeatherCard';
 import { PlayImpactAnalyzer } from './utils/playImpactAnalyzer';
 
-let OPENWEATHER_API_KEY = 'ed6ef54d27fe6cc2f398a9bd585fac51';
+let OPENWEATHER_API_KEY = 'ed6ef54d27fe6cc2f398a9bd585fac51'; // Replace with your actual API key
 
 console.log('Script loading...');
 
-async function checkApiKey() {
+function checkApiKey() {
   console.log('Checking API key:', OPENWEATHER_API_KEY);
-  if (OPENWEATHER_API_KEY === 'YOUR_API_KEY') {
+  if (!OPENWEATHER_API_KEY || OPENWEATHER_API_KEY === 'ed6ef54d27fe6cc2f398a9bd585fac51') {
     console.warn('API key not configured');
     throw new Error('OpenWeather API key not configured');
   }
@@ -24,19 +26,27 @@ class GameDayWeather {
   async init() {
     try {
       console.log('Initializing GameDayWeather...');
-      
-      const result = await chrome.storage.sync.get('openweatherApiKey');
-      if (result.openweatherApiKey) {
-        OPENWEATHER_API_KEY = result.openweatherApiKey;
-        console.log('Loaded saved API key');
+
+      // Load API key from localStorage if saved
+      const savedApiKey = localStorage.getItem('openweatherApiKey');
+      if (savedApiKey) {
+        OPENWEATHER_API_KEY = savedApiKey;
+        console.log('Loaded saved API key from localStorage');
       }
-      
+
+      // Apply dark mode preference
+      const darkModeEnabled = localStorage.getItem('darkModeEnabled') === 'true';
+      if (darkModeEnabled) {
+        document.body.classList.add('dark-mode');
+      }
+
       await this.setupComponents();
       this.setupEventListeners();
       await this.loadStadiumData();
       console.log('Initialization complete');
     } catch (error) {
       console.error('Initialization error:', error);
+      this.showError('Initialization Error', error.message);
     }
   }
 
@@ -48,11 +58,10 @@ class GameDayWeather {
 
   setupEventListeners() {
     console.log('Setting up event listeners');
-    
+
     const refreshButton = document.querySelector('#refresh');
     const dateInput = document.querySelector('#weather-date');
     const settingsButton = document.querySelector('#settings');
-    const testButton = document.querySelector('#test');
 
     if (refreshButton) {
       console.log('Found refresh button');
@@ -78,15 +87,6 @@ class GameDayWeather {
       };
     }
 
-    if (testButton) {
-      console.log('Found test button');
-      testButton.style.display = 'inline-block';
-      testButton.onclick = () => {
-        console.log('Test clicked');
-        this.testWeatherAPI();
-      };
-    }
-
     const stadiumSelect = document.querySelector('#stadiumSelect');
     if (stadiumSelect) {
       console.log('Found stadium selector');
@@ -101,25 +101,29 @@ class GameDayWeather {
   async loadStadiumData() {
     try {
       console.log('Loading stadium data...');
-      
-      const url = chrome.runtime.getURL('src/data/stadium_coordinates.json');
+
+      const url = chrome.runtime.getURL('data/stadium_coordinates.json');
       console.log('Stadium data URL:', url);
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         console.error('Stadium data response not OK:', response.status);
         throw new Error('Failed to load stadium data');
       }
-      
+
       const data = await response.json();
       console.log('Raw stadium data:', data);
-      
-      if (!data.stadiums || !Array.isArray(data.stadiums)) {
+
+      if (!data.nfl || !data.ncaa) {
         console.error('Invalid stadium data format:', data);
         throw new Error('Invalid stadium data format');
       }
-      
-      this.stadiums = data.stadiums;
+
+      // Combine NFL and NCAA stadiums
+      this.stadiums = [
+        ...Object.values(data.nfl),
+        ...Object.values(data.ncaa),
+      ];
       this.populateStadiumSelector();
       console.log('Loaded stadiums:', this.stadiums);
     } catch (error) {
@@ -135,7 +139,7 @@ class GameDayWeather {
     selector.innerHTML = `
       <option value="all">All Stadiums</option>
       ${this.stadiums.map(stadium => `
-        <option value="${stadium.id}">${stadium.name} - ${stadium.team}</option>
+        <option value="${stadium.team}">${stadium.name} - ${stadium.team}</option>
       `).join('')}
     `;
   }
@@ -164,13 +168,13 @@ class GameDayWeather {
         throw new Error('No stadium data available');
       }
 
-      let stadimsToFetch = this.stadiums;
-      if (this.selectedStadium !== 'all') {
-        stadimsToFetch = this.stadiums.filter(s => s.id === this.selectedStadium);
+      let stadiumsToFetch = this.stadiums;
+      if (this.selectedStadium && this.selectedStadium !== 'all') {
+        stadiumsToFetch = this.stadiums.filter(s => s.team === this.selectedStadium);
       }
 
-      console.log('Fetching weather for stadiums:', stadimsToFetch);
-      const weatherPromises = stadimsToFetch.map(stadium => 
+      console.log('Fetching weather for stadiums:', stadiumsToFetch);
+      const weatherPromises = stadiumsToFetch.map(stadium =>
         this.fetchWeatherForStadium(stadium, selectedDate)
       );
 
@@ -184,16 +188,16 @@ class GameDayWeather {
   }
 
   async fetchWeatherForStadium(stadium, date) {
-    await checkApiKey();
-    
+    checkApiKey();
+
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${stadium.latitude}&lon=${stadium.longitude}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
-    
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Weather API error: ${response.statusText}`);
       }
-      
+
       const weather = await response.json();
       return { stadium, weather };
     } catch (error) {
@@ -213,8 +217,8 @@ class GameDayWeather {
 
     weatherData.forEach((data, index) => {
       console.log(`Creating weather card ${index + 1}:`, data);
-      const card = this.weatherCard.updateWeather(data.weather, data.stadium);
-      weatherList.appendChild(card);
+      const cardElement = this.weatherCard.createCard(data.weather, data.stadium);
+      weatherList.appendChild(cardElement);
     });
   }
 
@@ -228,17 +232,17 @@ class GameDayWeather {
 
     const errorDiv = document.createElement('div');
     errorDiv.className = `error-message ${isApiError ? 'api-key-missing' : ''}`;
-    
+
     const titleElement = document.createElement('strong');
     titleElement.textContent = title;
     errorDiv.appendChild(titleElement);
-    
+
     if (message) {
       const messageP = document.createElement('p');
       messageP.textContent = message;
       errorDiv.appendChild(messageP);
     }
-    
+
     const button = document.createElement('button');
     button.textContent = isApiError ? 'Configure API Key' : 'Try Again';
     button.addEventListener('click', () => {
@@ -249,74 +253,95 @@ class GameDayWeather {
       }
     });
     errorDiv.appendChild(button);
-    
+
     weatherList.innerHTML = '';
     weatherList.appendChild(errorDiv);
   }
 
   openSettings() {
+    // Adjusted to not use chrome.storage and handle settings locally
     const modal = document.createElement('div');
     modal.className = 'settings-modal';
-    
+
+    // Load settings from localStorage
+    const settings = JSON.parse(localStorage.getItem('settings')) || {};
+
     modal.innerHTML = `
       <div class="settings-content">
-        <div class="setting-group">
-          <label>Default View</label>
-          <select id="defaultView">
-            <option value="all">All Stadiums</option>
-            <option value="nfl">NFL Only</option>
-            <option value="ncaa">College Only</option>
-          </select>
-        </div>
-
-        <div class="setting-group">
-          <label>Temperature Unit</label>
-          <select id="tempUnit">
-            <option value="F">Fahrenheit</option>
-            <option value="C">Celsius</option>
-          </select>
-        </div>
-
-        <div class="setting-group">
-          <label>
-            <input type="checkbox" id="showFeelsLike" checked>
-            Show "Feels Like" Temperature
-          </label>
-        </div>
-
-        <h3>Weather Alerts</h3>
-        
-        <div class="setting-group">
-          <label>
-            <input type="checkbox" id="enableAlerts">
-            Enable Weather Alerts
-          </label>
-        </div>
-
-        <div class="setting-group">
-          <label>Alert for Temperature Changes Over</label>
-          <div class="input-group">
-            <input type="number" id="tempThreshold" value="10">
-            <span>°F</span>
+        <h2>Settings</h2>
+        <div class="settings-section">
+          <div class="setting-item">
+            <label for="apiKey">OpenWeather API Key</label>
+            <input type="text" id="apiKey" placeholder="Enter your OpenWeather API Key" value="${OPENWEATHER_API_KEY !== 'ed6ef54d27fe6cc2f398a9bd585fac51' ? OPENWEATHER_API_KEY : ''}" />
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="darkMode" ${document.body.classList.contains('dark-mode') ? 'checked' : ''}>
+              Enable Dark Mode
+            </label>
           </div>
         </div>
-
-        <div class="setting-group">
-          <label>Alert for Wind Changes Over</label>
-          <div class="input-group">
-            <input type="number" id="windThreshold" value="5">
-            <span>mph</span>
-          </div>
+        <div class="settings-footer">
+          <button class="cancel-btn">Cancel</button>
+          <button class="save-btn">Save</button>
         </div>
       </div>
     `;
 
     document.body.appendChild(modal);
+
+    // Event listeners for buttons
+    const saveBtn = modal.querySelector('.save-btn');
+    const cancelBtn = modal.querySelector('.cancel-btn');
+
+    const closeModal = () => {
+      document.body.removeChild(modal);
+    };
+
+    saveBtn.addEventListener('click', () => {
+      console.log('💾 Saving settings');
+      const apiKey = modal.querySelector('#apiKey').value.trim();
+      const darkModeEnabled = modal.querySelector('#darkMode').checked;
+
+      if (apiKey) {
+        OPENWEATHER_API_KEY = apiKey;
+        localStorage.setItem('openweatherApiKey', apiKey);
+        console.log('API Key saved to localStorage');
+        this.refreshWeather();
+      }
+
+      if (darkModeEnabled) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+
+      // Save dark mode preference to localStorage
+      localStorage.setItem('darkModeEnabled', darkModeEnabled);
+
+      // Close the modal
+      closeModal();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      console.log('❌ Cancel settings');
+      closeModal();
+    });
+
+    // Close modal when clicking outside of it
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
   }
 
   async testWeatherAPI() {
     try {
       // Test with one stadium first
+      if (!this.stadiums || this.stadiums.length === 0) {
+        await this.loadStadiumData();
+      }
       const testStadium = this.stadiums[0];
       const result = await this.fetchWeatherForStadium(testStadium, new Date().toISOString().split('T')[0]);
       console.log('API Test Result:', result);
@@ -338,16 +363,16 @@ class GameDayWeather {
     }
   }
 
-  async applySettings(settings) {
+  applySettings(settings) {
     this.settings = settings;
-    
+
     document.querySelectorAll('.temperature').forEach(el => {
       const temp = parseFloat(el.textContent);
-      el.textContent = settings.tempUnit === 'C' ? 
-        `${this.convertToC(temp)}°C` : 
+      el.textContent = settings.temperature === 'C' ?
+        `${this.convertToC(temp)}°C` :
         `${temp}°F`;
     });
-    
+
     if (!settings.showFeelsLike) {
       document.querySelectorAll('.feels-like').forEach(el => el.style.display = 'none');
     }
@@ -367,4 +392,4 @@ if (document.readyState === 'loading') {
 } else {
   console.log('DOM already loaded - Creating GameDayWeather instance');
   window.gameWeather = new GameDayWeather();
-} 
+}

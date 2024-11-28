@@ -1,5 +1,7 @@
 const API_KEY = '1ba80e3d0e80d7c84305feea8a64aa8c';
 
+
+
 // Test the API immediately when background.js loads
 (async function testAPIKey() {
   try {
@@ -32,8 +34,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     fetchWeather(request.latitude, request.longitude)
       .then(data => {
-        console.log('📤 Weather data fetched:', data);
-        sendResponse({ weather: data });
+        console.log(' Weather data fetched:', data);
+        sendResponse(data);
       })
       .catch(error => {
         console.error('❌ Weather fetch error:', error);

@@ -1,201 +1,416 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Populate NFL Teams
-    const nflTeams = [
-        "Baltimore Ravens", "Cincinnati Bengals", "Cleveland Browns", "Pittsburgh Steelers",
-        "Houston Texans", "Indianapolis Colts", "Jacksonville Jaguars", "Tennessee Titans",
-        "Buffalo Bills", "Miami Dolphins", "New England Patriots", "New York Jets",
-        "Denver Broncos", "Kansas City Chiefs", "Las Vegas Raiders", "Los Angeles Chargers",
-        "Chicago Bears", "Detroit Lions", "Green Bay Packers", "Minnesota Vikings",
-        "Atlanta Falcons", "Carolina Panthers", "New Orleans Saints", "Tampa Bay Buccaneers",
-        "Arizona Cardinals", "Los Angeles Rams", "San Francisco 49ers", "Seattle Seahawks",
-        "Dallas Cowboys", "New York Giants", "Philadelphia Eagles", "Washington Commanders"
-    ];
+const STADIUM_DATA_PATH = 'data/stadium_coordinates.json';
+let stadiumDataCache = null;
+let OPENWEATHER_API_KEY = localStorage.getItem('openweatherApiKey') || null;
 
-    const nflSelect = document.getElementById('nflTeams');
-    nflTeams.forEach(team => {
-        const option = document.createElement('option');
-        option.value = team;
-        option.textContent = team;
-        nflSelect.appendChild(option);
-    });
-
-    // Populate College Teams
-    populateCollegeTeams();
-
-    // Add event listeners
-    document.getElementById('nflTeams').addEventListener('change', handleTeamSelection);
-    document.getElementById('collegeTeams').addEventListener('change', handleTeamSelection);
-    document.getElementById('gameDate').addEventListener('change', handleDateSelection);
-    document.getElementById('refresh').addEventListener('click', refreshWeather);
-    document.getElementById('settings').addEventListener('click', showSettings);
-});
-
-async function handleTeamSelection(event) {
-    const selectedTeam = event.target.value;
-    console.log(' Selected team:', selectedTeam);
-    console.log('👉 From dropdown:', event.target.id);
-    
-    if (!selectedTeam) return;
-
+// Load the stadium data and initialize the app
+document.addEventListener('DOMContentLoaded', async function () {
     try {
-        console.log('📍 Fetching stadium data...');
-        const response = await fetch('data/stadium_coordinates.json');
-        if (!response.ok) {
-            throw new Error(`Failed to load stadium data: ${response.status}`);
+        // Fetch stadium data
+        const stadiumDataResponse = await fetch(chrome.runtime.getURL(STADIUM_DATA_PATH));
+
+        if (!stadiumDataResponse.ok) {
+            throw new Error(`HTTP error! status: ${stadiumDataResponse.status}`);
         }
-        
-        const stadiumData = await response.json();
-        
-        // Detailed logging of the data structure
-        console.log('📍 Full stadium data:', {
-            nflCount: Object.keys(stadiumData.nfl || {}).length,
-            ncaaCount: Object.keys(stadiumData.ncaa || {}).length,
-            firstNFLStadium: Object.entries(stadiumData.nfl || {})[0],
-            firstNCAA: Object.entries(stadiumData.ncaa || {})[0],
-            dataStructure: {
-                hasNFL: 'nfl' in stadiumData,
-                hasNCAA: 'ncaa' in stadiumData,
-                topLevelKeys: Object.keys(stadiumData)
+
+        const stadiumDataText = await stadiumDataResponse.text();
+        console.log('Raw stadium data text:', stadiumDataText);
+
+        let stadiumDataRaw;
+
+        try {
+            stadiumDataRaw = JSON.parse(stadiumDataText);
+            console.log('Stadium data fetched:', stadiumDataRaw);
+        } catch (parseError) {
+            console.error('Error parsing stadium data JSON:', parseError);
+            throw parseError; // Re-throw to be caught by the outer try...catch
+        }
+
+        // Transform the data into an array of stadiums
+        stadiumDataCache = transformStadiumData(stadiumDataRaw);
+        console.log('Transformed stadium data:', stadiumDataCache);
+
+        // Populate team dropdowns
+        populateCollegeTeams(stadiumDataCache);
+        populateNFLTeams(stadiumDataCache);
+
+        // Add event listeners
+        const elements = {
+            'nfl-teams': { handler: handleTeamSelection, event: 'change' },
+            'college-teams': { handler: handleTeamSelection, event: 'change' },
+            'weather-date': { handler: handleDateSelection, event: 'change' },
+            'refresh': { handler: refreshWeather, event: 'click' },
+            'settings': { handler: showSettings, event: 'click' },
+        };
+
+        Object.entries(elements).forEach(([id, config]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                console.log(`✅ Adding ${config.event} listener to ${id}`);
+                element.addEventListener(config.event, config.handler);
+            } else {
+                console.warn(`⚠️ Element with ID '${id}' not found`);
             }
         });
 
-        // Log the first few entries to see structure
-        console.log('📍 First 3 NFL stadiums:', 
-            Object.entries(stadiumData.nfl || {}).slice(0, 3)
-                .map(([name, info]) => ({name, team: info.team}))
-        );
-
-        // Check if Rose Bowl exists in the data
-        const roseBowl = Object.entries(stadiumData.ncaa || {})
-            .find(([name]) => name.includes('Rose Bowl'));
-        console.log('🌹 Rose Bowl entry:', roseBowl);
-
-        // Find the matching stadium
-        let stadium;
-        if (event.target.id === 'nfl-teams') {
-            console.log('🏈 Looking for NFL stadium for:', selectedTeam);
-            stadium = Object.values(stadiumData.nfl)
-                .find(s => {
-                    const match = s.team.includes(selectedTeam);
-                    console.log(`Checking ${s.team} -> ${match ? 'MATCH' : 'no match'}`);
-                    return match;
-                });
-        } else if (event.target.id === 'collegeSelect') {
-            console.log('🏈 Looking for college stadium for:', selectedTeam);
-            stadium = Object.values(stadiumData.ncaa)
-                .find(s => {
-                    const match = s.team.includes(selectedTeam);
-                    console.log(`Checking ${s.team} -> ${match ? 'MATCH' : 'no match'}`);
-                    return match;
-                });
-        }
-
-        console.log('🏟️ Found stadium:', stadium ? stadium.name : 'NOT FOUND');
-
-        if (stadium) {
-            console.log('🌍 Getting weather for:', {
-                stadium: stadium.name,
-                lat: stadium.latitude,
-                lon: stadium.longitude
-            });
-            
-            // Get weather for this stadium
-            chrome.runtime.sendMessage({
-                type: 'GET_WEATHER',
-                latitude: stadium.latitude,
-                longitude: stadium.longitude
-            }, response => {
-                console.log('☁️ Weather response:', response);
-                if (response && response.weather) {
-                    displayWeather(response.weather);
-                } else {
-                    console.error('❌ No weather data in response');
-                    weatherList.innerHTML = '<div class="error">Could not load weather data</div>';
-                }
-            });
-        } else {
-            console.error('❌ No stadium found for:', selectedTeam);
-            weatherList.innerHTML = '<div class="error">Stadium not found</div>';
-        }
     } catch (error) {
-        console.error('❌ Error handling team selection:', error);
-        weatherList.innerHTML = '<div class="error">Error loading stadium data</div>';
+        console.error('❌ Initialization failed:', error);
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = '<div class="error">Failed to load stadium data</div>';
+        }
+    }
+});
+
+// Function to transform stadium data into an array
+function transformStadiumData(stadiumDataRaw) {
+    if (stadiumDataRaw.stadiums && Array.isArray(stadiumDataRaw.stadiums)) {
+        console.log('✅ Transforming stadiums array');
+        return { stadiums: stadiumDataRaw.stadiums };
+    } else {
+        console.warn('⚠️ stadiumDataRaw.stadiums is undefined or not an array');
+        return { stadiums: [] };
     }
 }
 
-function displayWeather(forecast) {
+// Function to populate the college teams dropdown
+function populateCollegeTeams(stadiumData) {
+    const collegeSelect = document.getElementById('college-teams');
+    if (collegeSelect) {
+        console.log('🏈 Populating college teams dropdown');
+        collegeSelect.innerHTML = '<option value="all">College Teams</option>';
+
+        const collegeStadiums = stadiumData.stadiums.filter(s => s.league === 'NCAA');
+        console.log('Filtered NCAA stadiums:', collegeStadiums);
+
+        if (!collegeStadiums.length) {
+            console.error('❌ No NCAA stadiums found');
+            return;
+        }
+
+        // Extract unique team names
+        const collegeTeams = [...new Set(collegeStadiums.map(s => s.team))].sort();
+        console.log('📋 Available college teams:', collegeTeams);
+
+        collegeTeams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team; // Use the exact team name as the value
+            option.textContent = team;
+            collegeSelect.appendChild(option);
+        });
+    } else {
+        console.error('❌ College teams dropdown not found');
+    }
+}
+
+// Function to populate the NFL teams dropdown
+function populateNFLTeams(stadiumData) {
+    const nflSelect = document.getElementById('nfl-teams');
+    if (nflSelect) {
+        console.log('🏈 Populating NFL teams dropdown');
+        nflSelect.innerHTML = '<option value="all">NFL Teams</option>';
+
+        const nflStadiums = stadiumData.stadiums.filter(s => s.league === 'NFL');
+        console.log('Filtered NFL stadiums:', nflStadiums);
+
+        if (!nflStadiums.length) {
+            console.error('❌ No NFL stadiums found');
+            return;
+        }
+
+        // Extract unique team names
+        const nflTeams = [...new Set(nflStadiums.map(s => s.team))].sort();
+        console.log('📋 Available NFL teams:', nflTeams);
+
+        nflTeams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team; // Use the exact team name as the value
+            option.textContent = team;
+            nflSelect.appendChild(option);
+        });
+    } else {
+        console.error('❌ NFL teams dropdown not found');
+    }
+}
+
+// Handle team selection from dropdowns
+function handleTeamSelection(event) {
+    const selectedTeam = event.target.value;
+    const dropdownId = event.target.id;
+
+    console.log('👉 Team Selection:', { selectedTeam, dropdownId });
+
+    if (!selectedTeam || selectedTeam === 'all') {
+        console.log('No team selected or "all" selected');
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = '';
+        }
+        return;
+    }
+
+    try {
+        let selectedStadium = null;
+
+        if (stadiumDataCache && stadiumDataCache.stadiums) {
+            selectedStadium = stadiumDataCache.stadiums.find(
+                s =>
+                    s.team === selectedTeam &&
+                    s.league === (dropdownId === 'nfl-teams' ? 'NFL' : 'NCAA')
+            );
+
+            // If not found, attempt a partial match
+            if (!selectedStadium) {
+                selectedStadium = stadiumDataCache.stadiums.find(
+                    s =>
+                        s.team.toLowerCase().includes(selectedTeam.toLowerCase()) &&
+                        s.league === (dropdownId === 'nfl-teams' ? 'NFL' : 'NCAA')
+                );
+            }
+        }
+
+        if (selectedStadium) {
+            console.log('🏟️ Found stadium:', selectedStadium);
+            fetchWeather(selectedStadium);
+        } else {
+            console.error('❌ No stadium found for:', selectedTeam);
+            const weatherList = document.getElementById('weatherList');
+            if (weatherList) {
+                weatherList.innerHTML = '<div class="error">Stadium not found</div>';
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error handling team selection:', error);
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = '<div class="error">Error loading stadium data</div>';
+        }
+    }
+}
+
+// Fetch weather data for the selected stadium
+function fetchWeather(stadium) {
+    if (!stadium) {
+        console.error('❌ No stadium provided to fetchWeather');
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = '<div class="error">Stadium not found</div>';
+        }
+        return;
+    }
+
+    if (!OPENWEATHER_API_KEY) {
+        console.warn('⚠️ OpenWeather API Key not set');
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = '<div class="error">API Key not set. Please set it in settings.</div>';
+        }
+        return;
+    }
+
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${stadium.latitude}&lon=${stadium.longitude}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(weatherData => {
+            console.log('☁️ Weather data:', weatherData);
+            displayWeather(weatherData, stadium);
+        })
+        .catch(error => {
+            console.error('❌ Weather API error:', error);
+            const weatherList = document.getElementById('weatherList');
+            if (weatherList) {
+                weatherList.innerHTML = '<div class="error">Could not load weather data</div>';
+            }
+        });
+}
+
+// Display the weather data in the UI
+function displayWeather(weatherData, stadium) {
     const weatherList = document.getElementById('weatherList');
+    if (!weatherList) return;
+
+    // Clear existing content
     weatherList.innerHTML = '';
 
-    const weatherCard = document.createElement('div');
-    weatherCard.className = 'game-card';
-
-    const weatherInfo = `
-        <div class="weather-icon">
-            <img src="${forecast.day.condition.icon}" alt="${forecast.day.condition.text}">
-        </div>`;
-
-    weatherCard.innerHTML = weatherInfo;
+    // Use the createWeatherCard function to create and render the card
+    const weatherCard = createWeatherCard(weatherData, stadium);
     weatherList.appendChild(weatherCard);
 }
 
-function createDateInput() {
-    const dateContainer = document.createElement('div');
-    dateContainer.className = 'date-container';
+// Separate function to create the weather card element
+function createWeatherCard(weatherData, stadium) {
+    const card = document.createElement('div');
+    card.className = 'game-card';
 
-    const dateInput = document.createElement('input');
-    dateInput.type = 'text';
-    dateInput.id = 'dateInput';
-    dateInput.value = 'Weather Date';
-    
-    dateInput.addEventListener('focus', (e) => {
-        if (e.target.value === 'Weather Date') {
-            e.target.value = '';
-        }
-        e.target.type = 'date';
-    });
-    
-    dateInput.addEventListener('blur', (e) => {
-        if (!e.target.value) {
-            e.target.type = 'text';
-            e.target.value = 'Weather Date';
-        }
-    });
-    
-    dateContainer.appendChild(dateInput);
-    
-    return dateContainer;
+    const windSpeed = weatherData.wind ? Math.round(weatherData.wind.speed) : 'N/A';
+    const humidity = weatherData.main ? weatherData.main.humidity : 'N/A';
+    const feelsLike = weatherData.main ? Math.round(weatherData.main.feels_like) : 'N/A';
+    const temp = weatherData.main ? Math.round(weatherData.main.temp) : 'N/A';
+    const weatherDescription = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].description : '';
+    const weatherIcon = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].icon : '';
+
+    card.innerHTML = `
+        <div class="weather-icon-container">
+            <img class="weather-icon" 
+                 src="https://openweathermap.org/img/w/${weatherIcon}.png" 
+                 alt="${weatherDescription}">
+            <div class="temperature">${temp}°F</div>
+        </div>
+        <div class="game-info">
+            <h3>${stadium.name}</h3>
+            <div class="team-name">${stadium.team}</div>
+            <div class="conditions">${weatherDescription}</div>
+            <div class="weather-details">
+                <div class="detail">
+                    <span class="label">Feels like:</span> 
+                    <span class="value">${feelsLike}°F</span>
+                </div>
+                <div class="detail">
+                    <span class="label">Wind:</span> 
+                    <span class="value">${windSpeed} mph</span>
+                </div>
+                <div class="detail">
+                    <span class="label">Humidity:</span> 
+                    <span class="value">${humidity}%</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return card;
 }
 
+// Handle date selection (future feature)
+function handleDateSelection(event) {
+    console.log('📅 Date selected:', event.target.value);
+    // Future implementation for handling date changes
+}
+
+// Show the settings modal
+function showSettings() {
+    console.log('⚙️ Opening settings');
+
+    // Create and display the settings modal
+    const modal = createSettingsModal();
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
+
+    // Add event listeners for 'Save' and 'Cancel' buttons
+    const saveBtn = modal.querySelector('.save-btn');
+    const cancelBtn = modal.querySelector('.cancel-btn');
+
+    const closeModal = () => {
+        document.body.removeChild(modal);
+        document.body.removeChild(overlay);
+    };
+
+    saveBtn.addEventListener('click', () => {
+        console.log('💾 Saving settings');
+        const darkModeEnabled = modal.querySelector('#darkMode').checked;
+        const apiKeyInput = modal.querySelector('#apiKey').value.trim();
+
+        // Save API key
+        if (apiKeyInput) {
+            OPENWEATHER_API_KEY = apiKeyInput;
+            localStorage.setItem('openweatherApiKey', OPENWEATHER_API_KEY);
+        }
+
+        // Apply dark mode
+        if (darkModeEnabled) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+
+        // Save dark mode preference using localStorage
+        localStorage.setItem('darkModeEnabled', darkModeEnabled);
+
+        // Close the modal
+        closeModal();
+
+        // Refresh weather data after saving settings
+        refreshWeather();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        console.log('❌ Cancel settings');
+        // Simply close the modal without saving
+        closeModal();
+    });
+
+    // Close modal when clicking outside of it
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            closeModal();
+        }
+    });
+}
+
+// Refresh the weather data
+function refreshWeather() {
+    // Get selected team from either dropdown
+    const nflTeam = document.getElementById('nfl-teams').value;
+    const collegeTeam = document.getElementById('college-teams').value;
+
+    console.log('🔄 Refreshing weather for:', { nflTeam, collegeTeam });
+
+    // Use the first selected team that isn't 'all'
+    let selectedTeam = null;
+    let dropdownId = null;
+
+    if (nflTeam && nflTeam !== 'all') {
+        selectedTeam = nflTeam;
+        dropdownId = 'nfl-teams';
+    } else if (collegeTeam && collegeTeam !== 'all') {
+        selectedTeam = collegeTeam;
+        dropdownId = 'college-teams';
+    }
+
+    if (selectedTeam) {
+        console.log('🎯 Refreshing weather for:', { team: selectedTeam, dropdown: dropdownId });
+        handleTeamSelection({
+            target: {
+                value: selectedTeam,
+                id: dropdownId,
+            },
+        });
+    } else {
+        console.log('⚠️ No team selected for refresh');
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = '';
+        }
+    }
+}
+
+// Create the settings modal
 function createSettingsModal() {
     const modal = document.createElement('div');
     modal.className = 'settings-modal';
 
-    const header = document.createElement('div');
-    header.className = 'settings-modal-header';
-    header.innerHTML = '<h2>Settings</h2>';
-
     const content = document.createElement('div');
-    content.className = 'settings-modal-content';
-    // Add your settings content here
+    content.className = 'settings-content';
+    content.innerHTML = `
+        <h2>Settings</h2>
+        <div class="settings-section">
+            <div class="setting-item">
+                <label for="apiKey">OpenWeather API Key</label>
+                <input type="text" id="apiKey" placeholder="Enter your OpenWeather API Key" value="${OPENWEATHER_API_KEY || ''}" />
+            </div>
+            <div class="setting-item">
+                <label for="darkMode">Dark Mode</label>
+                <input type="checkbox" id="darkMode" ${document.body.classList.contains('dark-mode') ? 'checked' : ''} />
+            </div>
+        </div>
+        <div class="settings-footer">
+            <button class="cancel-btn">Cancel</button>
+            <button class="save-btn">Save</button>
+        </div>
+    `;
 
-    const footer = document.createElement('div');
-    footer.className = 'settings-modal-footer';
-    
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'save-btn';
-    saveBtn.textContent = 'Save';
-    
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'cancel-btn';
-    cancelBtn.textContent = 'Cancel';
-    
-    footer.appendChild(cancelBtn);
-    footer.appendChild(saveBtn);
-
-    modal.appendChild(header);
     modal.appendChild(content);
-    modal.appendChild(footer);
-
     return modal;
-} 
+}

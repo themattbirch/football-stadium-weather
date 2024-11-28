@@ -1,3 +1,5 @@
+// settings.js
+
 class SettingsManager {
   constructor() {
     this.modal = null;
@@ -7,26 +9,26 @@ class SettingsManager {
         lowTemp: 32,
         windSpeed: 20,
         rainAmount: 5,
-        snowAmount: 2
+        snowAmount: 2,
       },
       display: {
         showTrends: true,
         showAlerts: true,
         temperature: 'F', // or 'C'
-        refreshInterval: 30 // minutes
-      }
+        refreshInterval: 30, // minutes
+      },
     };
     this.loadSettings();
   }
 
-  async loadSettings() {
-    const stored = await chrome.storage.sync.get('settings');
-    this.settings = stored.settings || this.defaultSettings;
+  loadSettings() {
+    const storedSettings = localStorage.getItem('settings');
+    this.settings = storedSettings ? JSON.parse(storedSettings) : this.defaultSettings;
   }
 
-  async saveSettings(newSettings) {
+  saveSettings(newSettings) {
     this.settings = { ...this.settings, ...newSettings };
-    await chrome.storage.sync.set({ settings: this.settings });
+    localStorage.setItem('settings', JSON.stringify(this.settings));
   }
 
   createSettingsModal() {
@@ -71,8 +73,8 @@ class SettingsManager {
         </div>
 
         <div class="button-group">
-          <button id="saveSettings" class="primary">Save Settings</button>
-          <button id="closeSettings">Cancel</button>
+          <button id="saveSettings" class="primary save-btn">Save Settings</button>
+          <button id="closeSettings" class="cancel-btn">Cancel</button>
         </div>
       </div>
     `;
@@ -84,14 +86,14 @@ class SettingsManager {
     if (this.modal) this.closeModal();
     this.modal = this.createSettingsModal();
     document.body.appendChild(this.modal);
-    
+
     // Add event listeners
     const saveBtn = this.modal.querySelector('#saveSettings');
     const closeBtn = this.modal.querySelector('#closeSettings');
-    
+
     saveBtn.addEventListener('click', () => this.saveAndClose());
     closeBtn.addEventListener('click', () => this.closeModal());
-    
+
     // Close when clicking outside the modal
     this.modal.addEventListener('click', (e) => {
       if (e.target === this.modal) this.closeModal();
@@ -112,18 +114,21 @@ class SettingsManager {
         lowTemp: parseInt(this.modal.querySelector('#lowTemp').value),
         windSpeed: parseInt(this.modal.querySelector('#windSpeed').value),
         rainAmount: this.settings.alerts.rainAmount,
-        snowAmount: this.settings.alerts.snowAmount
+        snowAmount: this.settings.alerts.snowAmount,
       },
       display: {
         showTrends: this.modal.querySelector('#showTrends').checked,
         showAlerts: this.settings.display.showAlerts,
         temperature: this.modal.querySelector('#tempUnit').value,
-        refreshInterval: this.settings.display.refreshInterval
-      }
+        refreshInterval: this.settings.display.refreshInterval,
+      },
     };
-    
+
     this.saveSettings(newSettings);
     this.closeModal();
     window.dispatchEvent(new Event('settingsChanged'));
   }
-} 
+}
+
+// Export the class if using modules
+// export default SettingsManager;

@@ -12,16 +12,16 @@ export class WeatherCard {
   }
 
   updateWeather(weatherData, stadium) {
-    console.log('Updating weather card:', { weatherData, stadium });
+    console.log('Updating weather card - Full data:', JSON.stringify({ weatherData, stadium }, null, 2));
     
     if (!weatherData || !stadium) {
       console.error('Missing weather data or stadium info');
       return this.container;
     }
     
-    const { main, weather, wind, rain, snow } = weatherData;
-    const precipitation = this.getPrecipitationInfo(weatherData);
-    const windDirection = this.getWindDirection(wind.deg);
+    const { main, weather, wind = {} } = weatherData;
+    const windDirection = wind.deg ? this.getWindDirection(wind.deg) : 'N/A';
+    const windSpeed = wind.speed ? Math.round(wind.speed) : 0;
 
     this.container.innerHTML = `
       <div class="weather-icon-container">
@@ -41,13 +41,13 @@ export class WeatherCard {
           </div>
           <div class="detail">
             <span class="label">Wind:</span> 
-            <span class="value">${Math.round(wind.speed)} mph ${windDirection}</span>
+            <span class="value">${windSpeed} mph ${windDirection}</span>
           </div>
           <div class="detail">
             <span class="label">Humidity:</span> 
             <span class="value">${main.humidity}%</span>
           </div>
-          ${precipitation}
+          ${this.getPrecipitationInfo(weatherData)}
         </div>
       </div>
     `;
@@ -56,8 +56,8 @@ export class WeatherCard {
   }
 
   getPrecipitationInfo(weatherData) {
-    const rain = weatherData.rain?.['1h'] || 0;
-    const snow = weatherData.snow?.['1h'] || 0;
+    const rain = weatherData?.rain?.['1h'] || 0;
+    const snow = weatherData?.snow?.['1h'] || 0;
     
     if (rain > 0 || snow > 0) {
       return `

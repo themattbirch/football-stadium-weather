@@ -1,91 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <title>GameDay Weather</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Include any required fonts or icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <div class="container">
+        <!-- Header Section -->
+        <!-- Header Section -->
         <header class="header">
-            <h1>GameDay Weather</h1>
-            <div class="controls">
-                <div class="stadium-selector">
-                    <select id="nfl-teams">
-                        <option value="all">NFL Teams</option>
-                        <option value="bal">Baltimore Ravens</option>
-                        <option value="cin">Cincinnati Bengals</option>
-                        <option value="cle">Cleveland Browns</option>
-                        <option value="pit">Pittsburgh Steelers</option>
-                        <option value="hou">Houston Texans</option>
-                        <option value="ind">Indianapolis Colts</option>
-                        <option value="jax">Jacksonville Jaguars</option>
-                        <option value="ten">Tennessee Titans</option>
-                        <option value="buf">Buffalo Bills</option>
-                        <option value="mia">Miami Dolphins</option>
-                        <option value="ne">New England Patriots</option>
-                        <option value="nyj">New York Jets</option>
-                        <option value="den">Denver Broncos</option>
-                        <option value="kc">Kansas City Chiefs</option>
-                        <option value="lv">Las Vegas Raiders</option>
-                        <option value="lac">Los Angeles Chargers</option>
-                        <option value="chi">Chicago Bears</option>
-                        <option value="det">Detroit Lions</option>
-                        <option value="gb">Green Bay Packers</option>
-                        <option value="min">Minnesota Vikings</option>
-                        <option value="atl">Atlanta Falcons</option>
-                        <option value="car">Carolina Panthers</option>
-                        <option value="no">New Orleans Saints</option>
-                        <option value="tb">Tampa Bay Buccaneers</option>
-                        <option value="dal">Dallas Cowboys</option>
-                        <option value="nyg">New York Giants</option>
-                        <option value="phi">Philadelphia Eagles</option>
-                        <option value="was">Washington Commanders</option>
-                        <option value="ari">Arizona Cardinals</option>
-                        <option value="lar">Los Angeles Rams</option>
-                        <option value="sf">San Francisco 49ers</option>
-                        <option value="sea">Seattle Seahawks</option>
-                    </select>
-                </div>
-                <div class="date-container">
-                    <input type="date" id="weather-date" placeholder="Weather Date">
-                    <label for="weather-date" class="date-label">Weather Date</label>
-                </div>
-            </div>
-            <div class="controls secondary-controls">
-                <div class="stadium-selector">
-                    <select id="collegeSelect">
-                        <option value="all">College Teams</option>
-                        <option value="101">Michigan Wolverines</option>
-                        <option value="102">Ohio State Buckeyes</option>
-                        <option value="103">Notre Dame Fighting Irish</option>
-                    </select>
-                </div>
-                <div class="game-features">
-                    <select id="gameFeatures">
-                        <option value="none">Game Features</option>
-                        <option value="kicking">Kicking Analysis</option>
-                        <option value="playcalling">Play Calling</option>
-                        <option value="comparison">Stadium Comparison</option>
-                    </select>
-                </div>
+            <div class="header-content">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAMASURBVFiF7ZZNaBNBGIbfmd1NNt1NmjRN0qY/ae2PRWutFaz1IIhePHgQD4IXEbwo6E0vevDgQfAiCJ48CYJ48SB48SL+IBVrRayiIdqftE2bpk3S/Gd3x4OkaZJ2k20aQRGfy+zs7Hz7zrfvfDPAf/xjEHmf+XxeQ0T7EXEvpXQXADAAGgD4AHwFACHEV0LIR0LIe0LIW4/Hk2hra0vlcjmN3++fSiQSHUKIfQBcABgAmQUMAXhFKX1BCHnX3t4eDQQCGQCAZDJpTafTBxDxEAAXgBwAfQkfAXAPwGMAL10uV8Lr9WYXJxBC6OPxeCel9AiAnQDyAHQLmALwnFJ6z+12v/X5fIXFN+bn5x2JRKI3n8/3I2IXIgoAGgATET8QQq7bzeKGEOKM2WxOdXZ2vqeU3kXE1wAoIjoQ8QAiXrHb7Qm73T4NABzHQSaTcWaz2R5EPAZgKyJaABgAkgCeEUKuEUI+eTyeVGtr6wwATE1NWVKp1EFE7AewBQADQAcwA+AhIeQGz/Mf3W53qhyIZDJpTafThxDxMAAXAB2ADkAA8JoQcoPn+TculyuxmMXc3Jw9kUj0IeIRAFsAGAA0AHkAbwDcIoS8cDqdcZ/Pl1mcRDKZtKbT6QOIeBhABwALAA2ADmAcwENCyC2e5984nc5vPp8vW+5jLBazp1KpfkQ8CmArABMADYAJYBTAfULIXafTOeL1erOVAMRisR2pVOokIh4EsAmACYAGQAUQAvAAwB2e50c8Hk+6kgHRaNSRTCZPIOIRANsBWItZzAB4AuAOz/MfPB5PplIW0Wi0LZlMnkLEwwC2AbAUszAATAB4DOC2w+EY83q9uUo+otFoazKZPI2IhwB0ArAWfRgApgG8BHCb5/kxp9OZr5RFJBJpSaVSZxHxIIBOALZiFgaAGQCvANxyOBzjDodDq+QjHA43p9Ppc4h4AEAXAHsxCwPALIA3AG46HI6Q3W7XK/kIh8NN6XT6PCLuB7ATgKOYhQFgDsA7ALd4ng/Z7fbCjxj4h98FXwHRnKs8/ZcDBAAAAABJRU5ErkJggg=="
+                    class="logo" style="filter: sepia(100%) saturate(300%) brightness(70%) hue-rotate(320deg);">
+                <h1>GameDay Weather</h1>
+                <button class="icon-button" id="settings">
+                    <!-- Inline SVG with currentColor for fill -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 8a4 4 0 100 8 4 4 0 000-8zm8.94 4a1.5 1.5 0 10-2.12-2.12 1.5 1.5 0 002.12 2.12zM4.06 12a1.5 1.5 0 102.12-2.12 1.5 1.5 0 00-2.12 2.12zM12 2a1.5 1.5 0 011.5 1.5v1a1.5 1.5 0 11-3 0v-1A1.5 1.5 0 0112 2zm0 19a1.5 1.5 0 011.5-1.5v-1a1.5 1.5 0 11-3 0v1A1.5 1.5 0 0112 21zm9-9a1.5 1.5 0 00-1.5 1.5h-1a1.5 1.5 0 100 3h1A1.5 1.5 0 0021 12zm-18 0a1.5 1.5 0 00-1.5 1.5h-1a1.5 1.5 0 100 3h1A1.5 1.5 0 003 12zm15.364-6.364a1.5 1.5 0 00-2.121 2.121l.707.707a1.5 1.5 0 102.121-2.121l-.707-.707zm-12.728 12.728a1.5 1.5 0 00-2.121 2.121l.707.707a1.5 1.5 0 102.121-2.121l-.707-.707z" />
+                    </svg>
+                </button>
             </div>
         </header>
 
-        <div class="weather-container">
-            <div id="weatherList">
-                <!-- Weather cards will be inserted here -->
+        <!-- Main Content Section -->
+        <main>
+            <!-- Dropdowns for Team Selection -->
+            <div class="team-dropdown">
+                <select id="nfl-teams" aria-label="Select NFL Team">
+                    <option value="all">NFL Teams</option>
+                    <!-- NFL teams will be populated dynamically -->
+                </select>
             </div>
-        </div>
 
-        <footer class="footer">
-            <button id="refresh">Refresh Weather</button>
-            <button id="settings">Settings</button>
+            <div class="team-dropdown">
+                <select id="college-teams" aria-label="Select College Team">
+                    <option value="all">College Teams</option>
+                    <!-- College teams will be populated dynamically -->
+                </select>
+            </div>
+
+            <!-- Weather Display Area -->
+            <div id="weatherList" class="weather-container">
+                <!-- Weather cards will be displayed here -->
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                Loading weather data...
+            </div>
+
+            <!-- Error Message Display -->
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <!-- Error messages will be displayed here -->
+            </div>
+
+            <!-- Refresh and Date Selection -->
+            <div class="controls">
+                <div class="date-selector">
+                    <label for="weather-date">Select Date:</label>
+                    <input type="date" id="weather-date" aria-label="Select Date">
+                </div>
+                <button id="refresh" class="primary-button">Refresh</button>
+            </div>
+        </main>
+
+        <!-- Footer Section -->
+        <footer>
+            <p>&copy; 2023 GameDay Weather</p>
         </footer>
     </div>
-    <script src="dist/bundle.js"></script>
+
+    <script src="popup.js"></script>
+    <!-- Remove 'dist/bundle.js' if not needed -->
 </body>
 
 </html>

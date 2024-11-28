@@ -1,4 +1,4 @@
-const OPENWEATHER_API_KEY = 'YOUR_API_KEY';
+const OPENWEATHER_API_KEY = '1ba80e3d0e80d7c84305feea8a64aa8c';
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 class WeatherService {
