@@ -1,39 +1,52 @@
-const STADIUM_DATA_PATH = 'data/stadium_coordinates.json';
+const STADIUM_DATA_PATH = '/data/stadium_coordinates.json';
 let stadiumDataCache = null;
 let OPENWEATHER_API_KEY = localStorage.getItem('openweatherApiKey') || null;
 
 // Load the stadium data and initialize the app
 document.addEventListener('DOMContentLoaded', async function () {
     try {
+        // Get the full URL for the JSON file
+        const jsonURL = chrome.runtime.getURL(STADIUM_DATA_PATH);
+        console.log('Attempting to fetch from:', jsonURL);
+
         // Fetch stadium data
-        const stadiumDataResponse = await fetch(chrome.runtime.getURL(STADIUM_DATA_PATH));
+        const stadiumDataResponse = await fetch(jsonURL);
 
         if (!stadiumDataResponse.ok) {
             throw new Error(`HTTP error! status: ${stadiumDataResponse.status}`);
         }
 
-        const stadiumDataText = await stadiumDataResponse.text();
-        console.log('Raw stadium data text:', stadiumDataText);
+        // Parse JSON and log the raw data
+        const stadiumDataRaw = await stadiumDataResponse.json();
 
-        let stadiumDataRaw;
-
-        try {
-            stadiumDataRaw = JSON.parse(stadiumDataText);
-            console.log('Stadium data fetched:', stadiumDataRaw);
-        } catch (parseError) {
-            console.error('Error parsing stadium data JSON:', parseError);
-            throw parseError; // Re-throw to be caught by the outer try...catch
+        // Add these debug lines:
+console.log('Raw JSON structure:', JSON.stringify(stadiumDataRaw, null, 2));
+console.log('Keys in raw data:', Object.keys(stadiumDataRaw));
+        
+        // Detailed logging of the data structure
+        console.log('Raw data:', stadiumDataRaw);
+        console.log('Raw data type:', typeof stadiumDataRaw);
+        console.log('Has NFL data:', Boolean(stadiumDataRaw.nfl));
+        console.log('Has NCAA data:', Boolean(stadiumDataRaw.ncaa));
+        
+        if (stadiumDataRaw.nfl) {
+            console.log('Number of NFL teams:', Object.keys(stadiumDataRaw.nfl).length);
+        }
+        if (stadiumDataRaw.ncaa) {
+            console.log('Number of NCAA teams:', Object.keys(stadiumDataRaw.ncaa).length);
         }
 
-        // Transform the data into an array of stadiums
-        stadiumDataCache = transformStadiumData(stadiumDataRaw);
-        console.log('Transformed stadium data:', stadiumDataCache);
+        // Transform the data
+        const transformedData = transformStadiumData(stadiumDataRaw);
+        
+        // Cache the transformed data
+        stadiumDataCache = transformedData;
 
-        // Populate team dropdowns
+        // Populate dropdowns
         populateCollegeTeams(stadiumDataCache);
         populateNFLTeams(stadiumDataCache);
 
-        // Add event listeners
+  // Add event listeners
         const elements = {
             'nfl-teams': { handler: handleTeamSelection, event: 'change' },
             'college-teams': { handler: handleTeamSelection, event: 'change' },
@@ -51,86 +64,146 @@ document.addEventListener('DOMContentLoaded', async function () {
                 console.warn(`⚠️ Element with ID '${id}' not found`);
             }
         });
+        
 
     } catch (error) {
-        console.error('❌ Initialization failed:', error);
+        console.error('Initialization failed:', error);
+        console.error('Error stack:', error.stack);
         const weatherList = document.getElementById('weatherList');
         if (weatherList) {
-            weatherList.innerHTML = '<div class="error">Failed to load stadium data</div>';
+            weatherList.innerHTML = `<div class="error">Failed to load stadium data: ${error.message}</div>`;
         }
     }
 });
 
-// Function to transform stadium data into an array
 function transformStadiumData(stadiumDataRaw) {
-    if (stadiumDataRaw.stadiums && Array.isArray(stadiumDataRaw.stadiums)) {
-        console.log('✅ Transforming stadiums array');
-        return { stadiums: stadiumDataRaw.stadiums };
-    } else {
-        console.warn('⚠️ stadiumDataRaw.stadiums is undefined or not an array');
+    if (!stadiumDataRaw || typeof stadiumDataRaw !== 'object') {
+        console.error('Invalid stadium data received:', stadiumDataRaw);
+        return { stadiums: [] };
+    }
+
+    const stadiumsArray = [];
+
+    // Log the raw data structure
+    console.log('Transforming data with keys:', Object.keys(stadiumDataRaw));
+
+    try {
+        // Process NFL stadiums
+        if (stadiumDataRaw.nfl && typeof stadiumDataRaw.nfl === 'object') {
+            Object.entries(stadiumDataRaw.nfl).forEach(([name, info]) => {
+                if (info && typeof info === 'object') {
+                    stadiumsArray.push({
+                        name,
+                        team: info.team,
+                        league: 'NFL',
+                        latitude: info.latitude,
+                        longitude: info.longitude,
+                        location: info.location
+                    });
+                }
+            });
+        }
+
+        // Process NCAA stadiums
+        if (stadiumDataRaw.ncaa && typeof stadiumDataRaw.ncaa === 'object') {
+            Object.entries(stadiumDataRaw.ncaa).forEach(([name, info]) => {
+                if (info && typeof info === 'object') {
+                    stadiumsArray.push({
+                        name,
+                        team: info.team,
+                        league: 'NCAA',
+                        latitude: info.latitude,
+                        longitude: info.longitude,
+                        location: info.location
+                    });
+                }
+            });
+        }
+
+        console.log(`Transformed ${stadiumsArray.length} stadiums`);
+        console.log(`NFL teams: ${stadiumsArray.filter(s => s.league === 'NFL').length}`);
+        console.log(`NCAA teams: ${stadiumsArray.filter(s => s.league === 'NCAA').length}`);
+
+        return { stadiums: stadiumsArray };
+    } catch (error) {
+        console.error('Error during transformation:', error);
         return { stadiums: [] };
     }
 }
 
-// Function to populate the college teams dropdown
+// Population functions
 function populateCollegeTeams(stadiumData) {
     const collegeSelect = document.getElementById('college-teams');
-    if (collegeSelect) {
-        console.log('🏈 Populating college teams dropdown');
-        collegeSelect.innerHTML = '<option value="all">College Teams</option>';
+    if (!collegeSelect) {
+        console.error('College teams dropdown not found');
+        return;
+    }
 
-        const collegeStadiums = stadiumData.stadiums.filter(s => s.league === 'NCAA');
-        console.log('Filtered NCAA stadiums:', collegeStadiums);
+    console.log('Populating college teams dropdown');
+    collegeSelect.innerHTML = '<option value="all">College Teams</option>';
 
-        if (!collegeStadiums.length) {
-            console.error('❌ No NCAA stadiums found');
-            return;
+    const collegeStadiums = stadiumData.stadiums.filter(s => s.league === 'NCAA');
+    console.log(`Found ${collegeStadiums.length} NCAA stadiums`);
+
+    // Create a Set of unique team names
+    const collegeTeams = new Set();
+    collegeStadiums.forEach(stadium => {
+        if (stadium.team) {
+            // Handle multiple teams per stadium
+            const teams = stadium.team.split(/,|\//);
+            teams.forEach(team => collegeTeams.add(team.trim()));
         }
+    });
 
-        // Extract unique team names
-        const collegeTeams = [...new Set(collegeStadiums.map(s => s.team))].sort();
-        console.log('📋 Available college teams:', collegeTeams);
-
-        collegeTeams.forEach(team => {
+    // Convert Set to sorted array and create options
+    Array.from(collegeTeams)
+        .sort()
+        .forEach(team => {
             const option = document.createElement('option');
-            option.value = team; // Use the exact team name as the value
+            option.value = team;
             option.textContent = team;
             collegeSelect.appendChild(option);
         });
-    } else {
-        console.error('❌ College teams dropdown not found');
-    }
+
+    console.log(`Added ${collegeTeams.size} college teams to dropdown`);
 }
 
-// Function to populate the NFL teams dropdown
 function populateNFLTeams(stadiumData) {
     const nflSelect = document.getElementById('nfl-teams');
-    if (nflSelect) {
-        console.log('🏈 Populating NFL teams dropdown');
-        nflSelect.innerHTML = '<option value="all">NFL Teams</option>';
+    if (!nflSelect) {
+        console.error('NFL teams dropdown not found');
+        return;
+    }
 
-        const nflStadiums = stadiumData.stadiums.filter(s => s.league === 'NFL');
-        console.log('Filtered NFL stadiums:', nflStadiums);
+    console.log('Populating NFL teams dropdown');
+    nflSelect.innerHTML = '<option value="all">NFL Teams</option>';
 
-        if (!nflStadiums.length) {
-            console.error('❌ No NFL stadiums found');
-            return;
+    const nflStadiums = stadiumData.stadiums.filter(s => s.league === 'NFL');
+    console.log(`Found ${nflStadiums.length} NFL stadiums`);
+
+    // Create a Set of unique team names
+    const nflTeams = new Set();
+    nflStadiums.forEach(stadium => {
+        if (stadium.team) {
+            // Handle multiple teams per stadium
+            const teams = stadium.team.split(/,|\//);
+            teams.forEach(team => nflTeams.add(team.trim()));
         }
+    });
 
-        // Extract unique team names
-        const nflTeams = [...new Set(nflStadiums.map(s => s.team))].sort();
-        console.log('📋 Available NFL teams:', nflTeams);
-
-        nflTeams.forEach(team => {
+    // Convert Set to sorted array and create options
+    Array.from(nflTeams)
+        .sort()
+        .forEach(team => {
             const option = document.createElement('option');
-            option.value = team; // Use the exact team name as the value
+            option.value = team;
             option.textContent = team;
             nflSelect.appendChild(option);
         });
-    } else {
-        console.error('❌ NFL teams dropdown not found');
-    }
+
+    console.log(`Added ${nflTeams.size} NFL teams to dropdown`);
 }
+
 
 // Handle team selection from dropdowns
 function handleTeamSelection(event) {
@@ -158,7 +231,7 @@ function handleTeamSelection(event) {
                     s.league === (dropdownId === 'nfl-teams' ? 'NFL' : 'NCAA')
             );
 
-            // If not found, attempt a partial match
+            // If not found, attempt a partial match (case-insensitive)
             if (!selectedStadium) {
                 selectedStadium = stadiumDataCache.stadiums.find(
                     s =>

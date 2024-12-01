@@ -25,7 +25,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "data/stadium_coordinates.json"
+        "data/*"
       ],
       "matches": [
         "<all_urls>"

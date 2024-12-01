@@ -6,7 +6,6 @@ const DIST_DIR = 'gameday-weather';
 
 async function createIcons() {
   console.log('Creating icons...');
-  // ... icon creation code ...
 }
 
 async function packageExtension() {
@@ -27,7 +26,7 @@ async function packageExtension() {
     await fs.copy('dist', path.join(DIST_DIR, 'dist'));
 
     // Copy data directory
-    await fs.copy('src/data', path.join(DIST_DIR, 'data'));
+  await fs.copy('data', path.join(DIST_DIR, 'data'));
 
     // Copy icons
     await fs.copy('icons', path.join(DIST_DIR, 'icons'));
@@ -36,6 +35,12 @@ async function packageExtension() {
     await fs.copy('background.js', path.join(DIST_DIR, 'background.js'));
     await fs.copy('settings.js', path.join(DIST_DIR, 'settings.js'));
     await fs.copy('popup.js', path.join(DIST_DIR, 'popup.js'));
+
+     // Debugging
+console.log('Verifying JSON structure...');
+const jsonContent = await fs.readFile(path.join(DIST_DIR, 'data/stadium_coordinates.json'), 'utf8');
+const parsed = JSON.parse(jsonContent);
+console.log('Top-level keys:', Object.keys(parsed));
 
     console.log('Extension packaged successfully in:', DIST_DIR);
   } catch (error) {

@@ -186,7 +186,7 @@
         },
         "MetLife Stadium": {
             "location": "East Rutherford, New Jersey",
-            "team": "New York GiantsNew York Jets",
+            "team": "New York Giants, New York Jets",
             "latitude": 40.81352375,
             "longitude": -74.07340074891175,
             "display_name": "MetLife Stadium, 1, MetLife Stadium Drive, East Rutherford, Bergen County, New Jersey, 07073, United States",
@@ -240,7 +240,7 @@
         },
         "SoFi Stadium": {
             "location": "Inglewood, California",
-            "team": "Los Angeles RamsLos Angeles Chargers",
+            "team": "Los Angeles Chargers, Los Angeles Rams",
             "latitude": 33.95340735,
             "longitude": -118.33900981025587,
             "display_name": "SoFi Stadium, 1001, Champion Drive, Hollywood Park, Inglewood, Los Angeles County, California, 90301, United States",
@@ -1248,9 +1248,9 @@
             "type": "stadium",
             "last_verified": "2024-11-26T23:31:42.315023"
         },
-        "Bryant Denny Stadium": {
+        "Saban Field at Bryant Denny Stadium": {
             "location": "Tuscaloosa AL",
-            "team": "Alabama Crimson Tide",
+            "team": "Alabama",
             "latitude": 33.487828314578536,
             "longitude": -86.86224207223162,
             "display_name": "Tuscaloosa Alley, Berney Points, Birmingham, Jefferson County, Alabama, 35211, United States",
