@@ -41,14 +41,11 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Cache the transformed data
         stadiumDataCache = transformedData;
 
-        // Populate dropdowns
-        populateCollegeTeams(stadiumDataCache);
-        populateNFLTeams(stadiumDataCache);
+        // Populate custom dropdowns
+        populateDropdowns(stadiumDataCache);
 
-        // Add event listeners
+        // Add event listeners for settings, date picker, and refresh button
         const elements = {
-            'nfl-teams': { handler: handleTeamSelection, event: 'change' },
-            'college-teams': { handler: handleTeamSelection, event: 'change' },
             'weather-date': { handler: handleDateSelection, event: 'change' },
             'refresh': { handler: refreshWeather, event: 'click' },
             'settings': { handler: showSettings, event: 'click' },
@@ -145,177 +142,140 @@ function transformStadiumData(stadiumDataRaw) {
 }
 
 /**
- * Populates the College Teams dropdown.
+ * Populates the custom dropdowns with team options.
  * @param {Object} stadiumData - The transformed stadium data.
  */
-function populateCollegeTeams(stadiumData) {
-    const collegeSelect = document.getElementById('college-teams');
-    if (!collegeSelect) {
-        console.error('College teams dropdown not found');
-        return;
-    }
-
-    console.log('Populating college teams dropdown');
-    collegeSelect.innerHTML = '<option value="all">College Teams</option>';
-
-    const collegeStadiums = stadiumData.stadiums.filter(s => s.league === 'NCAA');
-    console.log(`Found ${collegeStadiums.length} NCAA stadiums`);
-
-    // Create a Set of unique team names
-    const collegeTeams = new Set();
-    collegeStadiums.forEach(stadium => {
-        if (stadium.team) {
-            // Handle multiple teams per stadium
-            const teams = stadium.team.split(/,|\//);
-            teams.forEach(team => collegeTeams.add(team.trim()));
-        }
-    });
-
-    // Convert Set to sorted array and create options
-    Array.from(collegeTeams)
-        .sort()
-        .forEach(team => {
-            const option = document.createElement('option');
-            option.value = team;
-            option.textContent = team;
-            collegeSelect.appendChild(option);
-        });
-
-    console.log(`Added ${collegeTeams.size} college teams to dropdown`);
+function populateDropdowns(stadiumData) {
+    populateCustomDropdown('nfl', stadiumData.stadiums.filter(s => s.league === 'NFL'));
+    populateCustomDropdown('college', stadiumData.stadiums.filter(s => s.league === 'NCAA'));
 }
 
 /**
- * Populates the NFL Teams dropdown.
- * @param {Object} stadiumData - The transformed stadium data.
+ * Populates a custom dropdown with options.
+ * @param {string} type - 'nfl' or 'college'.
+ * @param {Array} teams - Array of stadium objects.
  */
-function populateNFLTeams(stadiumData) {
-    const nflSelect = document.getElementById('nfl-teams');
-    if (!nflSelect) {
-        console.error('NFL teams dropdown not found');
-        return;
-    }
+function populateCustomDropdown(type, teams) {
+    const dropdown = document.getElementById(`${type}-dropdown`);
+    if (!dropdown) return;
 
-    console.log('Populating NFL teams dropdown');
-    nflSelect.innerHTML = '<option value="all">NFL Teams</option>';
+    const dropdownList = dropdown.querySelector('.dropdown-list');
+    if (!dropdownList) return;
 
-    const nflStadiums = stadiumData.stadiums.filter(s => s.league === 'NFL');
-    console.log(`Found ${nflStadiums.length} NFL stadiums`);
+    // Clear existing options
+    dropdownList.innerHTML = '';
 
     // Create a Set of unique team names
-    const nflTeams = new Set();
-    nflStadiums.forEach(stadium => {
+    const teamNames = new Set();
+    teams.forEach(stadium => {
         if (stadium.team) {
-            // Handle multiple teams per stadium
             const teams = stadium.team.split(/,|\//);
-            teams.forEach(team => nflTeams.add(team.trim()));
+            teams.forEach(team => teamNames.add(team.trim()));
         }
     });
 
-    // Convert Set to sorted array and create options
-    Array.from(nflTeams)
+    // Add 'All' option
+    const allOption = document.createElement('li');
+    allOption.textContent = type === 'nfl' ? 'NFL Teams' : 'College Teams';
+    allOption.dataset.value = 'all';
+    dropdownList.appendChild(allOption);
+
+    // Create list items
+    Array.from(teamNames)
         .sort()
         .forEach(team => {
-            const option = document.createElement('option');
-            option.value = team;
-            option.textContent = team;
-            nflSelect.appendChild(option);
+            const listItem = document.createElement('li');
+            listItem.textContent = team;
+            listItem.dataset.value = team;
+            dropdownList.appendChild(listItem);
         });
 
-    console.log(`Added ${nflTeams.size} NFL teams to dropdown`);
+    // Event listeners for dropdown
+    dropdown.addEventListener('click', function (event) {
+        event.stopPropagation();
+        closeAllDropdowns(this);
+        this.classList.toggle('active');
+    });
+
+    dropdownList.addEventListener('click', function (event) {
+        event.stopPropagation();
+        const selectedValue = event.target.dataset.value;
+        const selectedText = event.target.textContent;
+        dropdown.querySelector('.dropdown-selected').textContent = selectedText;
+        dropdown.classList.remove('active');
+        handleCustomDropdownSelection(type, selectedValue);
+    });
 }
 
 /**
- * Handles team selection from dropdowns.
- * Ensures mutual exclusivity between NFL and College Teams dropdowns.
- * @param {Event} event - The change event from the dropdown.
+ * Handles selection from a custom dropdown.
+ * @param {string} type - 'nfl' or 'college'.
+ * @param {string} selectedValue - The selected team value.
  */
-function handleTeamSelection(event) {
-    const selectedTeam = event.target.value;
-    const dropdownId = event.target.id;
+function handleCustomDropdownSelection(type, selectedValue) {
+    console.log(`Selected ${type} team:`, selectedValue);
 
-    console.log('👉 Team Selection:', { selectedTeam, dropdownId });
-
-    const weatherList = document.getElementById('weatherList');
-    const errorMessage = document.getElementById('errorMessage');
-
-    // Mutual Exclusivity Logic
-    if (dropdownId === 'nfl-teams') {
-        if (selectedTeam !== 'all') {
-            // Reset College Teams dropdown to 'all'
-            const collegeSelect = document.getElementById('college-teams');
-            if (collegeSelect.value !== 'all') {
-                collegeSelect.value = 'all';
-                console.log('🔄 Resetting College Teams dropdown to "all"');
-            }
-        }
-    } else if (dropdownId === 'college-teams') {
-        if (selectedTeam !== 'all') {
-            // Reset NFL Teams dropdown to 'all'
-            const nflSelect = document.getElementById('nfl-teams');
-            if (nflSelect.value !== 'all') {
-                nflSelect.value = 'all';
-                console.log('🔄 Resetting NFL Teams dropdown to "all"');
-            }
-        }
+    // Reset the other dropdown
+    const otherType = type === 'nfl' ? 'college' : 'nfl';
+    const otherDropdown = document.getElementById(`${otherType}-dropdown`);
+    if (otherDropdown) {
+        otherDropdown.querySelector('.dropdown-selected').textContent = otherType === 'nfl' ? 'NFL Teams' : 'College Teams';
     }
 
-    // Handle the selection
-    if (!selectedTeam || selectedTeam === 'all') {
-        console.log('No team selected or "all" selected');
+    // Proceed with fetching weather
+    if (selectedValue === 'all') {
+        // Handle 'all' selection
+        const weatherList = document.getElementById('weatherList');
         if (weatherList) {
             weatherList.innerHTML = '';
-            weatherList.style.display = 'none'; // Hide the weatherList when 'all' is selected
-        }
-        if (errorMessage) {
-            errorMessage.style.display = 'none'; // Hide any error messages
+            weatherList.style.display = 'none';
         }
         return;
     }
 
-    try {
-        let selectedStadium = null;
+    let selectedStadium = stadiumDataCache.stadiums.find(
+        s =>
+            s.team === selectedValue &&
+            s.league === (type === 'nfl' ? 'NFL' : 'NCAA')
+    );
 
-        if (stadiumDataCache && stadiumDataCache.stadiums) {
-            selectedStadium = stadiumDataCache.stadiums.find(
-                s =>
-                    s.team === selectedTeam &&
-                    s.league === (dropdownId === 'nfl-teams' ? 'NFL' : 'NCAA')
-            );
+    if (!selectedStadium) {
+        // Attempt partial match
+        selectedStadium = stadiumDataCache.stadiums.find(
+            s =>
+                s.team.toLowerCase().includes(selectedValue.toLowerCase()) &&
+                s.league === (type === 'nfl' ? 'NFL' : 'NCAA')
+        );
+    }
 
-            // If not found, attempt a partial match (case-insensitive)
-            if (!selectedStadium) {
-                selectedStadium = stadiumDataCache.stadiums.find(
-                    s =>
-                        s.team.toLowerCase().includes(selectedTeam.toLowerCase()) &&
-                        s.league === (dropdownId === 'nfl-teams' ? 'NFL' : 'NCAA')
-                );
-            }
-        }
-
-        if (selectedStadium) {
-            console.log('🏟️ Found stadium:', selectedStadium);
-            fetchWeather(selectedStadium);
-        } else {
-            console.error('❌ No stadium found for:', selectedTeam);
-            if (weatherList) {
-                weatherList.innerHTML = '<div class="error-message">Stadium not found</div>';
-                weatherList.style.display = 'flex'; // Show the error message container
-            }
-            if (errorMessage) {
-                errorMessage.style.display = 'none'; // Hide any previous error messages
-            }
-        }
-    } catch (error) {
-        console.error('❌ Error handling team selection:', error);
+    if (selectedStadium) {
+        fetchWeather(selectedStadium);
+    } else {
+        const weatherList = document.getElementById('weatherList');
         if (weatherList) {
-            weatherList.innerHTML = '<div class="error-message">Error loading stadium data</div>';
-            weatherList.style.display = 'flex'; // Show the error message container
-        }
-        if (errorMessage) {
-            errorMessage.style.display = 'none'; // Hide any previous error messages
+            weatherList.innerHTML = '<div class="error-message">Stadium not found</div>';
+            weatherList.style.display = 'flex';
         }
     }
 }
+
+/**
+ * Closes all open custom dropdowns except the current one.
+ * @param {HTMLElement} currentDropdown - The dropdown to keep open.
+ */
+function closeAllDropdowns(currentDropdown) {
+    const dropdowns = document.querySelectorAll('.custom-dropdown.active');
+    dropdowns.forEach(dropdown => {
+        if (dropdown !== currentDropdown) {
+            dropdown.classList.remove('active');
+        }
+    });
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function () {
+    closeAllDropdowns();
+});
 
 /**
  * Fetches weather data for the selected stadium.
@@ -553,32 +513,28 @@ function showSettings() {
  * Refreshes the weather data based on the selected team.
  */
 function refreshWeather() {
-    // Get selected team from either dropdown
-    const nflTeam = document.getElementById('nfl-teams').value;
-    const collegeTeam = document.getElementById('college-teams').value;
+    // Get selected team from custom dropdowns
+    const nflDropdown = document.getElementById('nfl-dropdown');
+    const collegeDropdown = document.getElementById('college-dropdown');
 
-    console.log('🔄 Refreshing weather for:', { nflTeam, collegeTeam });
-
-    // Use the first selected team that isn't 'all'
     let selectedTeam = null;
-    let dropdownId = null;
+    let dropdownType = null;
 
-    if (nflTeam && nflTeam !== 'all') {
-        selectedTeam = nflTeam;
-        dropdownId = 'nfl-teams';
-    } else if (collegeTeam && collegeTeam !== 'all') {
-        selectedTeam = collegeTeam;
-        dropdownId = 'college-teams';
+    const nflSelectedText = nflDropdown.querySelector('.dropdown-selected').textContent;
+    const collegeSelectedText = collegeDropdown.querySelector('.dropdown-selected').textContent;
+
+    if (nflSelectedText && nflSelectedText !== 'NFL Teams') {
+        selectedTeam = nflSelectedText;
+        dropdownType = 'nfl';
+    } else if (collegeSelectedText && collegeSelectedText !== 'College Teams') {
+        selectedTeam = collegeSelectedText;
+        dropdownType = 'college';
     }
 
+    console.log('🔄 Refreshing weather for:', { selectedTeam, dropdownType });
+
     if (selectedTeam) {
-        console.log('🎯 Refreshing weather for:', { team: selectedTeam, dropdown: dropdownId });
-        handleTeamSelection({
-            target: {
-                value: selectedTeam,
-                id: dropdownId,
-            },
-        });
+        handleCustomDropdownSelection(dropdownType, selectedTeam);
     } else {
         console.log('⚠️ No team selected for refresh');
         const weatherList = document.getElementById('weatherList');

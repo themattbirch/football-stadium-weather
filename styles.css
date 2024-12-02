@@ -444,6 +444,59 @@ body.dark-mode .setting-item {
   color: var(--text-color);
 }
 
+/* Custom Dropdown Styles */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--secondary-color);
+  border-radius: 4px;
+  background-color: var(--input-background);
+  color: var(--input-text-color);
+  cursor: pointer;
+}
+
+.custom-dropdown:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.dropdown-selected {
+  display: block;
+}
+
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background-color: var(--input-background);
+  border: 1px solid var(--secondary-color);
+  border-radius: 0 0 4px 4px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
+}
+
+.dropdown-list li {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.dropdown-list li:hover {
+  background-color: var(--secondary-color);
+  color: var(--button-text-color);
+}
+
+/* Show the dropdown when active */
+.custom-dropdown.active .dropdown-list {
+  display: block;
+}
+
 /* Media Queries for Responsive Design */
 @media (max-width: 480px) {
   .team-dropdown {
