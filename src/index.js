@@ -272,7 +272,7 @@ class GameDayWeather {
         <div class="settings-section">
           <div class="setting-item">
             <label for="apiKey">OpenWeather API Key</label>
-            <input type="text" id="apiKey" placeholder="Enter your OpenWeather API Key" value="${OPENWEATHER_API_KEY !== 'ed6ef54d27fe6cc2f398a9bd585fac51' ? OPENWEATHER_API_KEY : ''}" />
+            <input type="text" id="apiKey" placeholder="Enter API Key" value="${OPENWEATHER_API_KEY !== 'ed6ef54d27fe6cc2f398a9bd585fac51' ? OPENWEATHER_API_KEY : ''}" />
           </div>
           <div class="setting-item">
             <label>

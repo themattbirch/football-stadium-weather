@@ -1,6 +1,6 @@
 :root {
   --primary-color: #2E5A27;
-  --secondary-color: #8B4513;
+  --secondary-color: #f4ea80;
   --background-color: #F5F5F5;
   --text-color: #333;
   --card-background: #fff;
@@ -78,6 +78,7 @@ main {
 }
 
 /* Header Styles */
+
 .header {
   background-color: var(--primary-color);
   padding: 10px;
@@ -91,12 +92,6 @@ main {
   justify-content: space-between;
 }
 
-.logo {
-  width: 32px;
-  height: 32px;
-  margin-right: 10px;
-}
-
 .header h1 {
   flex-grow: 1;
   margin: 0;
@@ -105,6 +100,9 @@ main {
 }
 
 .icon-button {
+  width: 24px;
+  height: 24px;
+  transition: color 0.3s ease;
   background: none;
   border: none;
   cursor: pointer;
@@ -115,13 +113,7 @@ main {
   justify-content: center;
 }
 
-.icon-button svg {
-  width: 24px;
-  height: 24px;
-  transition: color 0.3s ease;
-}
-
-.icon-button:hover svg {
+.icon-button:hover {
   color: var(--secondary-color);
 }
 
@@ -165,6 +157,10 @@ main {
 .team-dropdown select:focus {
   position: relative;
   z-index: 1000;
+}
+
+.team-dropdown:first-child {
+  margin-top: 15px;
 }
 
 /* Weather Card Styles */
@@ -286,12 +282,14 @@ main {
   align-items: center;
   margin: 15px 0;
   padding: 0 5px;
+  gap: 20px;
 }
 
 .date-selector {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 15px;
+  flex: 1;
 }
 
 .date-selector input[type="date"] {
@@ -300,7 +298,7 @@ main {
   height: 36px;
   /* Fixed height */
   padding: 0 10px;
-  width: 150px;
+  width: 130px;
   border: 1px solid var(--secondary-color);
   border-radius: 4px;
   background-color: var(--input-background);
@@ -340,6 +338,7 @@ select[size] {
   border-radius: 4px;
   cursor: pointer;
   font-size: 1em;
+  flex-shrink: 0;
 }
 
 .primary-button:hover {
@@ -424,6 +423,25 @@ footer {
 
 .settings-footer .cancel-btn:hover {
   background-color: #da190b;
+}
+
+body.dark-mode .settings-modal {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+body.dark-mode .settings-modal input[type="text"] {
+  background-color: var(--input-background);
+  color: var(--text-color);
+  border-color: var(--secondary-color);
+}
+
+body.dark-mode .settings-modal label {
+  color: var(--text-color);
+}
+
+body.dark-mode .setting-item {
+  color: var(--text-color);
 }
 
 /* Media Queries for Responsive Design */
