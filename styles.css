@@ -9,9 +9,24 @@
   --button-text-color: #fff;
   --input-background: #fff;
   --input-text-color: #333;
+  --leather-tan: #D2B48C;
+  /* Added for border consistency */
+  --pigskin-brown: #8B4513;
+  /* Added for color consistency */
+  --field-green: #2E5A27;
+  /* Added for button background */
+  --chalk-white: #F5F5F5;
+  /* Added for background */
+  --stadium-gray: #666666;
+  /* Added for text color */
+  --modal-bg-color: #ffffff;
+  /* Added for modal background */
+  --font-size-large: 16px;
+  /* Added for date picker */
+  --font-size-medium: 14px;
+  /* General font size */
 }
 
-/* Dark mode variables */
 body.dark-mode {
   --primary-color: #1d3d1a;
   --secondary-color: #8B4513;
@@ -34,15 +49,32 @@ body {
 
 .container {
   max-width: 600px;
-  /* Adjusted from 400px to 600px or your desired width */
   margin: 0 auto;
   padding: 15px;
   position: relative;
   max-height: 600px;
-  /* Retained from the second definition */
+  /* Changed from height to max-height */
   overflow-y: auto;
+  /* Allows vertical scrolling */
   box-sizing: border-box;
-  /* Ensures padding and borders are included in the width */
+  background-color: var(--background-color);
+  /* Ensures consistent background */
+}
+
+main {
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+  /* Prevent scroll bar from causing horizontal scroll */
+}
+
+
+@font-face {
+  font-family: 'Roboto';
+  font-display: block;
+  /* Force immediate display */
+  src: local('Roboto');
 }
 
 /* Header Styles */
@@ -69,6 +101,7 @@ body {
   flex-grow: 1;
   margin: 0;
   font-size: 1.5em;
+  text-align: center;
 }
 
 .icon-button {
@@ -77,7 +110,6 @@ body {
   cursor: pointer;
   padding: 0;
   color: var(--settings-color);
-  /* Sets the color for the SVG */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,41 +123,75 @@ body {
 
 .icon-button:hover svg {
   color: var(--secondary-color);
-  /* Optional: Change color on hover */
 }
 
 /* Team Selection Styles */
-.team-selection {
-  display: flex;
-  gap: 10px;
-  margin: 15px 0;
+.team-dropdown {
+  position: relative;
+  max-width: 100%;
+  margin-bottom: 15px;
 }
 
-.team-selection select {
-  flex: 1;
-  padding: 8px;
+.team-dropdown select {
+  width: 100%;
+  padding: 8px 30px 8px 12px;
+  /* Maintains space for the arrow */
+  max-height: 200px;
+  overflow-y: auto;
   border: 1px solid var(--secondary-color);
   border-radius: 4px;
   background-color: var(--input-background);
   color: var(--input-text-color);
+  font-size: var(--font-size-medium);
+  /* Uses CSS variable for consistency */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+/* Dropdown list containment */
+.team-dropdown select option {
+  padding: 8px 12px;
   font-size: 14px;
+}
+
+/* Ensure dropdown stays within container */
+.team-dropdown select:focus {
+  position: relative;
+  z-index: 1000;
 }
 
 /* Weather Container Styles */
 .weather-container {
+      display: none;
+        /* Hidden by default */
+}
+
+.weather-container:not(:empty) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background-color: white;
+  border: 2px solid var(--leather-tan);
+  border-radius: 0 0 8px 8px;
+  padding: 15px;
 }
 
 /* Weather Card Styles */
 .game-card {
   display: flex;
-  background-color: var(--card-background);
-  border: 1px solid var(--secondary-color);
-  border-radius: 6px;
-  padding: 10px;
   align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--leather-tan);
+  border-radius: 6px;
+  background-color: var(--card-background);
 }
 
 .weather-icon-container {
@@ -135,20 +201,20 @@ body {
 }
 
 .weather-icon {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
 }
 
 .temperature {
-  font-size: 1.5em;
+  font-size: 1.2em;
+  color: var(--pigskin-brown);
   font-weight: bold;
-  color: var(--secondary-color);
   margin-top: 5px;
 }
 
 .game-info {
   flex-grow: 1;
-  margin-left: 15px;
+  margin-left: 10px;
 }
 
 .game-info h3 {
@@ -158,7 +224,7 @@ body {
 
 .team-name {
   font-size: 0.9em;
-  color: var(--primary-color);
+  color: var(--stadium-gray);
   margin-bottom: 5px;
 }
 
@@ -186,625 +252,6 @@ body {
 .loading {
   text-align: center;
   padding: 20px;
-  font-size: 1em;
-}
-
-.loading::after {
-  content: '';
-  display: inline-block;
-  margin-left: 10px;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--primary-color);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Error Message Styles */
-.error-message {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeeba;
-  border-radius: 4px;
-  padding: 10px;
-  text-align: center;
-}
-
-/* Controls Styles */
-.controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 15px;
-}
-
-.date-selector {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.date-selector label {
-  font-size: 0.9em;
-}
-
-.date-selector input[type="date"] {
-  padding: 6px;
-  border: 1px solid var(--secondary-color);
-  border-radius: 4px;
-  background-color: var(--input-background);
-  color: var(--input-text-color);
-}
-
-.primary-button {
-  background-color: var(--button-background);
-  color: var(--button-text-color);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.primary-button:hover {
-  background-color: var(--primary-color);
-}
-
-/* Footer Styles */
-footer {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 0.9em;
-}
-
-/* Media Queries for Responsive Design */
-@media (max-width: 480px) {
-  .team-selection {
-    flex-direction: column;
-  }
-
-  .game-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .game-info {
-    margin-left: 0;
-    margin-top: 10px;
-  }
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.5em;
-  text-align: center;
-}
-
-.weather-container {
-  background-color: white;
-  border: 2px solid var(--leather-tan);
-  border-radius: 0 0 8px 8px;
-  padding: 15px;
-}
-
-.game-card {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid var(--leather-tan);
-  border-radius: 6px;
-  background-color: white;
-}
-
-.weather-icon {
-  width: 50px;
-  height: 50px;
-}
-
-.game-info {
-  flex-grow: 1;
-  margin-left: 10px;
-}
-
-.temperature {
-  font-size: 1.2em;
-  color: var(--pigskin-brown);
-  font-weight: bold;
-}
-
-footer {
-  margin-top: 15px;
-  display: flex;
-  justify-content: space-between;
-}
-
-button {
-  background-color: var(--field-green);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-button:hover {
-  background-color: #1d3d1a;
-}
-
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.settings-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 80%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.settings-section {
-  margin: 15px 0;
-  padding: 10px;
-  border: 1px solid var(--leather-tan);
-  border-radius: 4px;
-}
-
-.setting-item {
-  margin: 10px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.weather-trends {
-  margin-top: 10px;
-  padding: 10px;
-  background: var(--chalk-white);
-  border-radius: 4px;
-}
-
-.weather-trends canvas {
-  width: 100%;
-  height: 100px;
-  background: white;
-}
-
-.offline-notice {
-  background: var(--stadium-gray);
-  color: var(--chalk-white);
-  padding: 8px;
-  text-align: center;
-  margin-bottom: 10px;
-  border-radius: 4px;
-}
-
-.comparison-container {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 15px;
-}
-
-.comparison-header {
-  border-bottom: 1px solid var(--leather-tan);
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.best-conditions {
-  background: var(--field-green);
-  color: white;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 10px;
-}
-
-.precipitation-warning {
-  background: #fff3cd;
-  border: 1px solid #ffeeba;
-  color: #856404;
-  padding: 10px;
-  border-radius: 4px;
-}
-
-.historical-analysis {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 15px;
-}
-
-.wind-chart {
-  display: flex;
-  justify-content: space-around;
-  height: 150px;
-  align-items: flex-end;
-  padding: 10px;
-  border: 1px solid var(--leather-tan);
-  border-radius: 4px;
-}
-
-.wind-bar {
-  width: 30%;
-  background: var(--field-green);
-  position: relative;
-  transition: height 0.3s;
-}
-
-.wind-label {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-}
-
-.notification-center {
-  max-height: 300px;
-  overflow-y: auto;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.notification-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--leather-tan);
-}
-
-.notification-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--leather-tan);
-}
-
-.notification-item.high {
-  border-left: 4px solid #dc3545;
-}
-
-.notification-item.medium {
-  border-left: 4px solid #ffc107;
-}
-
-.notification-item.low {
-  border-left: 4px solid #28a745;
-}
-
-.notification-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.notification-text {
-  flex-grow: 1;
-}
-
-.notification-text .message {
-  margin: 0;
-  font-size: 14px;
-}
-
-.notification-text .timestamp {
-  font-size: 12px;
-  color: var(--stadium-gray);
-}
-
-.dismiss-notification {
-  background: none;
-  border: none;
-  color: var(--stadium-gray);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 0 5px;
-}
-
-.dismiss-notification:hover {
-  color: var(--pigskin-brown);
-}
-
-/* Chart styles */
-.chart-container {
-  margin: 15px 0;
-  padding: 10px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-canvas {
-  max-width: 100%;
-  height: auto;
-}
-
-.weather-comparison {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.comparison-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.comparison-item {
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid var(--leather-tan);
-  transition: all 0.3s ease;
-}
-
-.comparison-item.unusual {
-  border-color: #dc3545;
-  background-color: rgba(220, 53, 69, 0.05);
-}
-
-.comparison-item h4 {
-  color: var(--stadium-gray);
-  margin: 0 0 10px 0;
-  font-size: 14px;
-}
-
-.current-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--pigskin-brown);
-  margin-bottom: 8px;
-}
-
-.historical-value {
-  font-size: 14px;
-  color: var(--stadium-gray);
-}
-
-.deviation {
-  display: block;
-  margin-top: 5px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.deviation.above {
-  color: #dc3545;
-}
-
-.deviation.below {
-  color: #0077be;
-}
-
-.condition-note {
-  display: block;
-  margin-top: 5px;
-  font-size: 12px;
-  font-style: italic;
-}
-
-.comparison-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.play-impact-analysis {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.impact-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.impact-card {
-  padding: 15px;
-  border: 1px solid var(--leather-tan);
-  border-radius: 6px;
-  background: var(--chalk-white);
-}
-
-.impact-card h4 {
-  margin: 0 0 10px 0;
-  color: var(--pigskin-brown);
-}
-
-.recommendation {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  padding: 5px;
-  text-align: center;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.impact-details {
-  margin: 10px 0;
-}
-
-.impact-item {
-  margin: 5px 0;
-  padding: 5px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.impact-item.high {
-  background: rgba(220, 53, 69, 0.1);
-  border-left: 3px solid #dc3545;
-}
-
-.impact-item.medium {
-  background: rgba(255, 193, 7, 0.1);
-  border-left: 3px solid #ffc107;
-}
-
-.impact-item.low {
-  background: rgba(40, 167, 69, 0.1);
-  border-left: 3px solid #28a745;
-}
-
-.impact-factor {
-  font-weight: bold;
-  text-transform: capitalize;
-  margin-right: 5px;
-}
-
-.impact-description {
-  color: var(--stadium-gray);
-}
-
-.impact-message {
-  margin-top: 10px;
-  padding: 8px;
-  background: var(--field-green);
-  color: white;
-  border-radius: 4px;
-  font-size: 13px;
-  text-align: center;
-}
-
-.wind-direction-viz {
-  background: var(--field-green);
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 15px;
-  position: relative;
-  height: 200px;
-}
-
-.field-overlay {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to right,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0.1) 100%);
-  border: 2px solid var(--leather-tan);
-  border-radius: 4px;
-}
-
-.wind-arrow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center;
-  width: 80px;
-  height: 4px;
-  background: white;
-}
-
-.arrow-head {
-  position: absolute;
-  right: -8px;
-  top: -8px;
-  width: 0;
-  height: 0;
-  border-left: 12px solid white;
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
-}
-
-.wind-speed {
-  position: absolute;
-  left: 50%;
-  top: -20px;
-  transform: translateX(-50%);
-  color: white;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.field-markings {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.goal-posts {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 60px;
-  border: 2px solid white;
-  border-left: none;
-}
-
-.yard-lines {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-image: repeating-linear-gradient(90deg,
-      rgba(255, 255, 255, 0.3) 0px,
-      rgba(255, 255, 255, 0.3) 1px,
-      transparent 1px,
-      transparent 20px);
-}
-
-.wind-impact {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  color: white;
-  font-size: 14px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.impact-label {
-  font-weight: bold;
-  margin-right: 8px;
-}
-
-.impact-value {
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.date-selector input[type="date"] {
-  background-color: var(--chalk-white);
-  border: 1px solid var(--leather-tan);
-  border-radius: 4px;
-  padding: 6px 10px;
-  color: var(--stadium-gray);
-  font-family: inherit;
-  width: 150px;
-}
-
-.loading {
-  text-align: center;
-  padding: 20px;
   color: var(--stadium-gray);
 }
 
@@ -826,6 +273,7 @@ canvas {
   }
 }
 
+/* Error Message Styles */
 .error-message {
   background-color: #fff3cd;
   color: #856404;
@@ -836,162 +284,81 @@ canvas {
   text-align: center;
 }
 
-.team-name {
-  color: var(--stadium-gray);
-  font-size: 0.9em;
-  margin-bottom: 5px;
-}
-
-.weather-details {
-  margin-top: 8px;
-  font-size: 0.9em;
-}
-
-.detail {
+/* Controls Styles */
+.controls {
   display: flex;
   justify-content: space-between;
-  margin: 2px 0;
-  color: var(--stadium-gray);
+  align-items: center;
+  margin: 15px 0;
+  padding: 0 5px;
 }
 
-.detail .label {
-  font-weight: 500;
-}
-
-.detail .value {
-  color: var(--pigskin-brown);
-}
-
-
-.date-container {
-  position: relative;
-  width: 100%;
-}
-
-.date-container input[type="date"] {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.date-label {
-  position: absolute;
-  top: -20px;
-  /* Adjust as needed */
-  left: 8px;
-  color: #666;
-  font-size: 14px;
-}
-
-.settings-modal-header {
-  background: #4CAF50;
-  color: white;
-  padding: 15px;
-  text-align: center;
-  font-size: 18px;
-  font-weight: bold;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-}
-
-.settings-modal-content {
-  flex: 1;
-  padding: 15px;
-  overflow-y: auto;
-}
-
-.settings-modal-footer {
-  padding: 15px;
-  background: white;
-  border-top: 1px solid #eee;
+.date-selector {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  align-items: center;
+  gap: 5px;
 }
 
-.settings-modal-footer button {
-  min-width: 80px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.settings-modal-footer .save-btn {
-  background: #4CAF50;
-  color: white;
-}
-
-.settings-modal-footer .cancel-btn {
-  background: #f44336;
-  color: white;
-}
-
-.setting-group {
-  margin-bottom: 15px;
-}
-
-.setting-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.setting-group input {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-
-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px;
-  padding-right: 30px;
-  /* Add space for the arrow */
-}
-
-.date-container input[type="date"] {
-  width: 100%;
-  padding: 8px 36px 8px 8px;
-  /* Adjust padding */
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background-color: white;
-}
-
-.date-container input[type="date"]::-webkit-calendar-picker-indicator {
-  position: absolute;
-  right: 8px;
-  color: #666;
-  opacity: 0.5;
-}
-
-.date-container input[type="date"]:hover::-webkit-calendar-picker-indicator {
-  opacity: 1;
-}
-
-/* Standard Dropdown Styles */
-.team-dropdown select {
-  width: 100%;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 8px;
+.date-selector input[type="date"] {
+  font-size: 14px !important;
+  /* Force consistent size */
+  height: 36px;
+  /* Fixed height */
+  padding: 0 10px;
+  width: 150px;
   border: 1px solid var(--secondary-color);
   border-radius: 4px;
   background-color: var(--input-background);
   color: var(--input-text-color);
-  font-size: 14px;
+  font-family: 'Roboto', sans-serif;
+  /* Ensure consistent font */
+  -webkit-appearance: none;
+  /* Remove default styling */
+  -moz-appearance: none;
+  appearance: none;
 }
 
+/* Date label consistent sizing */
+.date-selector label {
+  font-size: 14px !important;
+  /* Force consistent size */
+  font-weight: normal;
+}
+
+/* Add these to prevent dropdown overflow */
+select[size] {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+/* Ensure proper stacking context */
+.header {
+  position: relative;
+  z-index: 2;
+}
+
+.primary-button {
+  background-color: var(--button-background);
+  color: var(--button-text-color);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.primary-button:hover {
+  background-color: var(--primary-color);
+}
+
+/* Footer Styles */
+footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9em;
+}
+
+/* Modal Overlay */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1009,19 +376,14 @@ select {
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: var(--modal-bg-color, #ffffff);
-  /* Fallback color */
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   width: 90%;
-  /* Adjust as needed */
   max-width: 600px;
-  /* Adjust to match index.html's width */
-  height: auto;
   max-height: 90vh;
   overflow-y: auto;
   z-index: 1001;
-  /* Ensure it's above the overlay */
 }
 
 /* Settings Content */
@@ -1036,19 +398,19 @@ select {
   margin-top: 20px;
 }
 
-/* Buttons */
+/* Buttons in Settings Modal */
 .settings-footer .save-btn,
 .settings-footer .cancel-btn {
-  padding: 8px 16px;
+  padding: 10px 20px;
+  /* Increased padding */
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  background-color: var(--button-bg-color);
-  color: var(--button-text-color);
-  transition: background-color 0.3s ease;
+  font-weight: bold;
+  font-size: 1em;
+  /* Increased font size */
 }
 
-/* Specific Styles */
 .settings-footer .save-btn {
   background-color: #4CAF50;
   /* Green */
@@ -1061,7 +423,6 @@ select {
   color: white;
 }
 
-/* Hover Effects */
 .settings-footer .save-btn:hover {
   background-color: #45a049;
 }
@@ -1070,10 +431,27 @@ select {
   background-color: #da190b;
 }
 
-/* Ensure Visibility */
-.settings-footer .save-btn,
-.settings-footer .cancel-btn {
-  opacity: 1;
-  visibility: visible;
-  display: inline-block;
+/* Media Queries for Responsive Design */
+@media (max-width: 480px) {
+  .team-dropdown {
+    margin-bottom: 10px;
+    /* Adjusted spacing for smaller screens */
+  }
+
+  .game-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .game-info {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .date-selector input[type="date"] {
+    max-width: 150px;
+    /* Adjusted max width for smaller screens */
+    font-size: 1em;
+    /* Ensure readability */
+  }
 }
