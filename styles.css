@@ -1,3 +1,4 @@
+/* Root Variables */
 :root {
   --primary-color: #2E5A27;
   --secondary-color: #f4ea80;
@@ -10,23 +11,21 @@
   --input-background: #fff;
   --input-text-color: #333;
   --leather-tan: #D2B48C;
-  /* Added for border consistency */
   --pigskin-brown: #8B4513;
-  /* Added for color consistency */
   --field-green: #2E5A27;
-  /* Added for button background */
   --chalk-white: #F5F5F5;
-  /* Added for background */
   --stadium-gray: #666666;
-  /* Added for text color */
   --modal-bg-color: #ffffff;
-  /* Added for modal background */
   --font-size-large: 16px;
-  /* Added for date picker */
   --font-size-medium: 14px;
-  /* General font size */
+  /* New variables */
+  --hover-background-color: var(--primary-color);
+  --hover-text-color: var(--button-text-color);
+  --value-color: #333333;
+  --temperature-color: #333333;
 }
 
+/* Dark Mode Variables */
 body.dark-mode {
   --primary-color: #1d3d1a;
   --secondary-color: #8B4513;
@@ -37,8 +36,14 @@ body.dark-mode {
   --button-text-color: #fff;
   --input-background: #2c2c2c;
   --input-text-color: #e0e0e0;
+  /* New variables */
+  --hover-background-color: var(--secondary-color);
+  --hover-text-color: var(--button-text-color);
+  --value-color: #e0e0e0;
+  --temperature-color: #e0e0e0;
 }
 
+/* Global Styles */
 body {
   margin: 0;
   padding: 0;
@@ -69,6 +74,10 @@ main {
   /* Prevent scroll bar from causing horizontal scroll */
 }
 
+/* Ensure content doesn't overflow */
+* {
+  box-sizing: border-box;
+}
 
 @font-face {
   font-family: 'Roboto';
@@ -198,7 +207,7 @@ main {
 
 .temperature {
   font-size: 1.2em;
-  color: var(--pigskin-brown);
+  color: var(--temperature-color);
   font-weight: bold;
   margin-top: 5px;
 }
@@ -236,7 +245,7 @@ main {
 }
 
 .weather-details .value {
-  color: var(--secondary-color);
+  color: var(--value-color);
 }
 
 /* Loading Indicator Styles */
@@ -341,8 +350,21 @@ select[size] {
   flex-shrink: 0;
 }
 
-.primary-button:hover {
-  background-color: var(--primary-color);
+/* Button Hover Animation */
+.primary-button,
+.save-btn,
+.cancel-btn {
+  transition: background-color 0.3s ease;
+}
+
+.primary-button:hover,
+.save-btn:hover {
+  background-color: var(--hover-background-color);
+}
+
+.cancel-btn:hover {
+  background-color: #da190b;
+  /* Slightly darker red for hover effect */
 }
 
 /* Footer Styles */
@@ -456,7 +478,45 @@ body.dark-mode .setting-item {
   cursor: pointer;
 }
 
-.custom-dropdown:focus {
+/* Dropdown Transition */
+.custom-dropdown .dropdown-list {
+  transition: max-height 0.3s ease;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.custom-dropdown.active .dropdown-list {
+  max-height: 250px;
+}
+
+/* Focus styles for accessibility */
+.custom-dropdown:focus,
+.dropdown-search input:focus,
+.primary-button:focus,
+.icon-button:focus,
+.settings-footer .save-btn:focus,
+.settings-footer .cancel-btn:focus {
+  outline: 2px solid var(--primary-color);
+}
+
+/* Add styles for the search input */
+.dropdown-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--secondary-color);
+  background-color: var(--input-background);
+}
+
+.dropdown-search input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--secondary-color);
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: var(--input-background);
+  color: var(--input-text-color);
+}
+
+.dropdown-search input:focus {
   outline: none;
   border-color: var(--primary-color);
 }
@@ -470,7 +530,6 @@ body.dark-mode .setting-item {
   top: 100%;
   left: 0;
   right: 0;
-  max-height: 200px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -487,9 +546,10 @@ body.dark-mode .setting-item {
   cursor: pointer;
 }
 
+/* Hover Effect */
 .dropdown-list li:hover {
-  background-color: var(--secondary-color);
-  color: var(--button-text-color);
+  background-color: var(--hover-background-color);
+  color: var(--hover-text-color);
 }
 
 /* Show the dropdown when active */

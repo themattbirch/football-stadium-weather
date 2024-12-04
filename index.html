@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Gameday Weather</title>
+    <title>Football Stadium Weather</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Include any required fonts or icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +15,9 @@
 </head>
 
 <body>
+    <div id="offlineMessage" style="display: none;">
+        <p>You are currently offline. Some features may not be available.</p>
+    </div>
     <div class="container">
         <!-- Header Section -->
         <header class="header">
@@ -24,7 +27,7 @@
                         <use href="/icons/football_icon.svg#football-icon"></use>
                     </svg>
                 </button>
-                <h1>Football Gameday Weather</h1>
+                <h1>Football Stadium Weather</h1>
                 <button class="icon-button" id="settings">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                         <path
@@ -36,24 +39,30 @@
 
         <!-- Main Content Section -->
         <main>
-        <!-- Custom Dropdowns for Team Selection -->
-        <div class="team-dropdown">
-            <div id="nfl-dropdown" class="custom-dropdown" tabindex="0">
-                <span class="dropdown-selected">NFL Teams</span>
-                <ul class="dropdown-list" aria-label="Select NFL Team">
-                    <!-- NFL teams will be populated dynamically -->
-                </ul>
+            <!-- Custom Dropdowns for Team Selection -->
+            <div class="team-dropdown">
+                <div id="nfl-dropdown" class="custom-dropdown" tabindex="0">
+                    <span class="dropdown-selected">NFL Teams</span>
+                    <ul class="dropdown-list" aria-label="Select NFL Team">
+                        <li class="dropdown-search">
+                            <input type="text" placeholder="Search teams..." />
+                        </li>
+                        <!-- NFL teams will be populated dynamically -->
+                    </ul>
+                </div>
             </div>
-        </div>
-        
-        <div class="team-dropdown">
-            <div id="college-dropdown" class="custom-dropdown" tabindex="0">
-                <span class="dropdown-selected">College Teams</span>
-                <ul class="dropdown-list" aria-label="Select College Team">
-                    <!-- College teams will be populated dynamically -->
-                </ul>
+
+            <div class="team-dropdown">
+                <div id="college-dropdown" class="custom-dropdown" tabindex="0">
+                    <span class="dropdown-selected">College Teams</span>
+                    <ul class="dropdown-list" aria-label="Select College Team">
+                        <li class="dropdown-search">
+                            <input type="text" placeholder="Search teams..." />
+                        </li>
+                        <!-- College teams will be populated dynamically -->
+                    </ul>
+                </div>
             </div>
-        </div>
 
             <!-- Weather Display Area -->
             <div id="weatherList" class="weather-container">
@@ -85,8 +94,11 @@
         </footer>
     </div>
 
-
+    <!-- Include your main popup script -->
     <script src="popup.js"></script>
+
+    <!-- Offline detection script -->
+    <script src="offlineDetection.js"></script>
 </body>
 
 </html>

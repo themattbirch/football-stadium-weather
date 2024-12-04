@@ -151,7 +151,7 @@ function populateDropdowns(stadiumData) {
 }
 
 /**
- * Populates a custom dropdown with options.
+ * Populates a custom dropdown with options and adds search functionality.
  * @param {string} type - 'nfl' or 'college'.
  * @param {Array} teams - Array of stadium objects.
  */
@@ -164,6 +164,14 @@ function populateCustomDropdown(type, teams) {
 
     // Clear existing options
     dropdownList.innerHTML = '';
+
+    // Add search input
+    const searchItem = document.createElement('li');
+    searchItem.className = 'dropdown-search';
+    searchItem.innerHTML = '<input type="text" placeholder="Search teams..." />';
+    dropdownList.appendChild(searchItem);
+
+    const searchInput = searchItem.querySelector('input');
 
     // Create a Set of unique team names
     const teamNames = new Set();
@@ -181,6 +189,7 @@ function populateCustomDropdown(type, teams) {
     dropdownList.appendChild(allOption);
 
     // Create list items
+    const teamListItems = [];
     Array.from(teamNames)
         .sort()
         .forEach(team => {
@@ -188,6 +197,7 @@ function populateCustomDropdown(type, teams) {
             listItem.textContent = team;
             listItem.dataset.value = team;
             dropdownList.appendChild(listItem);
+            teamListItems.push(listItem);
         });
 
     // Event listeners for dropdown
@@ -195,15 +205,63 @@ function populateCustomDropdown(type, teams) {
         event.stopPropagation();
         closeAllDropdowns(this);
         this.classList.toggle('active');
+        // Focus on the search input when dropdown is opened
+        if (this.classList.contains('active')) {
+            searchInput.focus();
+        }
     });
 
     dropdownList.addEventListener('click', function (event) {
         event.stopPropagation();
-        const selectedValue = event.target.dataset.value;
-        const selectedText = event.target.textContent;
-        dropdown.querySelector('.dropdown-selected').textContent = selectedText;
-        dropdown.classList.remove('active');
-        handleCustomDropdownSelection(type, selectedValue);
+        if (event.target.tagName.toLowerCase() === 'li' && !event.target.classList.contains('dropdown-search')) {
+            const selectedValue = event.target.dataset.value;
+            const selectedText = event.target.textContent;
+            dropdown.querySelector('.dropdown-selected').textContent = selectedText;
+            dropdown.classList.remove('active');
+            handleCustomDropdownSelection(type, selectedValue);
+        }
+    });
+
+    // Handle keyboard navigation
+    dropdown.addEventListener('keydown', function (event) {
+        const active = dropdown.classList.contains('active');
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (active) {
+                // If dropdown is open, select the first visible item
+                const visibleItems = Array.from(dropdownList.querySelectorAll('li:not(.dropdown-search):not([style*="display: none"])'));
+                if (visibleItems.length > 0) {
+                    const firstItem = visibleItems[0];
+                    firstItem.click();
+                }
+            } else {
+                // Open dropdown
+                dropdown.click();
+            }
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (!active) {
+                dropdown.click();
+            }
+            searchInput.focus();
+        } else if (event.key === 'Escape') {
+            if (active) {
+                dropdown.classList.remove('active');
+            }
+        }
+    });
+
+    // Add input event listener for search functionality
+    searchInput.addEventListener('input', function () {
+        const filter = searchInput.value.toLowerCase();
+        teamListItems.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (text.includes(filter)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
     });
 }
 
@@ -278,159 +336,208 @@ document.addEventListener('click', function () {
 });
 
 /**
- * Fetches weather data for the selected stadium.
+ * Fetches weather data for the selected stadium by sending a message to the background script.
  * @param {Object} stadium - The selected stadium object.
  */
 function fetchWeather(stadium) {
-    if (!stadium) {
-        console.error('❌ No stadium provided to fetchWeather');
-        const weatherList = document.getElementById('weatherList');
-        if (weatherList) {
-            weatherList.innerHTML = '<div class="error-message">Stadium not found</div>';
-            weatherList.style.display = 'flex'; // Show the error message container
-        }
-        return;
-    }
-
-    if (!OPENWEATHER_API_KEY) {
-        console.warn('⚠️ OpenWeather API Key not set');
-        const weatherList = document.getElementById('weatherList');
-        if (weatherList) {
-            weatherList.innerHTML = '<div class="error-message">API Key not set. Please set it in settings.</div>';
-            weatherList.style.display = 'flex'; // Show the error message container
-        }
-        return;
-    }
-
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${stadium.latitude}&lon=${stadium.longitude}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
-
-    // Show loading indicator
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const errorMessage = document.getElementById('errorMessage');
-
-    if (loadingIndicator) {
-        loadingIndicator.style.display = 'block';
-    }
+  if (!stadium) {
+    console.error('❌ No stadium provided to fetchWeather');
     const weatherList = document.getElementById('weatherList');
     if (weatherList) {
-        weatherList.style.display = 'none'; // Hide weatherList while loading
+      weatherList.innerHTML = '<div class="error-message">Stadium not found</div>';
+      weatherList.style.display = 'flex'; // Show the error message container
     }
-    if (errorMessage) {
-        errorMessage.style.display = 'none'; // Hide any previous error messages
+    return;
+  }
+
+  // Store stadium in localStorage for offline access
+  localStorage.setItem('lastStadium', JSON.stringify(stadium));
+
+  // Show loading indicator
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  const errorMessage = document.getElementById('errorMessage');
+
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'block';
+  }
+  const weatherList = document.getElementById('weatherList');
+  if (weatherList) {
+    weatherList.style.display = 'none'; // Hide weatherList while loading
+  }
+  if (errorMessage) {
+    errorMessage.style.display = 'none'; // Hide any previous error messages
+  }
+
+  if (!navigator.onLine) {
+    // User is offline
+    console.warn('⚠️ User is offline');
+    // Display an offline message or use cached data if available
+    const offlineMessage = document.getElementById('offlineMessage');
+    if (offlineMessage) {
+      offlineMessage.style.display = 'block';
     }
 
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Weather API response error: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(weatherData => {
-            console.log('☁️ Weather data:', weatherData);
-            displayWeather(weatherData, stadium);
-        })
-        .catch(error => {
-            console.error('❌ Weather API error:', error);
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
-            if (errorMessage) {
-                errorMessage.style.display = 'block';
-                errorMessage.textContent = 'Could not load weather data.';
-            }
-            if (weatherList) {
-                weatherList.innerHTML = ''; // Clear any existing content
-                weatherList.style.display = 'none'; // Ensure it's hidden
-            }
-        });
+    // Try to retrieve cached weather data
+    const cachedData = localStorage.getItem('weatherData');
+    if (cachedData) {
+      const weatherData = JSON.parse(cachedData);
+      displayWeather(weatherData, stadium);
+    } else {
+      if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+      }
+      if (errorMessage) {
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = 'You are offline and no cached data is available.';
+      }
+    }
+    return;
+  }
+
+  // Send a message to the background script to fetch weather data
+  chrome.runtime.sendMessage(
+    {
+      type: 'GET_WEATHER',
+      latitude: stadium.latitude,
+      longitude: stadium.longitude,
+    },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Message error:', chrome.runtime.lastError);
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        if (errorMessage) {
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = 'Could not communicate with background script.';
+        }
+        if (weatherList) {
+          weatherList.innerHTML = ''; // Clear any existing content
+          weatherList.style.display = 'none'; // Ensure it's hidden
+        }
+        return;
+      }
+      if (response.error) {
+        console.error('Weather fetch error:', response.error);
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        if (errorMessage) {
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = 'Could not load weather data.';
+        }
+        if (weatherList) {
+          weatherList.innerHTML = ''; // Clear any existing content
+          weatherList.style.display = 'none'; // Ensure it's hidden
+        }
+        return;
+      }
+      // Weather data fetched successfully
+      console.log('☁️ Weather data:', response);
+      if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+      }
+      // Store weather data for offline access
+      localStorage.setItem('weatherData', JSON.stringify(response));
+      displayWeather(response, stadium);
+    }
+  );
 }
 
 /**
  * Displays the weather data in the UI.
- * @param {Object} weatherData - The fetched weather data from OpenWeather API.
- * @param {Object} stadium - The stadium object associated with the weather data.
+ * @param {Object} weatherData - The weather data object.
+ * @param {Object} stadium - The stadium object.
  */
 function displayWeather(weatherData, stadium) {
-    const weatherList = document.getElementById('weatherList');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const errorMessage = document.getElementById('errorMessage');
+  const weatherList = document.getElementById('weatherList');
+  if (!weatherList) return;
 
-    if (!weatherList) return;
+  // Clear existing content
+  weatherList.innerHTML = '';
 
-    // Clear existing content
-    weatherList.innerHTML = '';
+  // Create weather card
+  const weatherCard = createWeatherCard(weatherData, stadium);
+  weatherList.appendChild(weatherCard);
 
-    // Use the createWeatherCard function to create and render the card
-    const weatherCard = createWeatherCard(weatherData, stadium);
-    weatherList.appendChild(weatherCard);
-
-    // Hide loading indicator and show weather list
-    if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-    }
-    if (weatherList) {
-        weatherList.style.display = 'flex'; // Show the weatherList div now that data is loaded
-    }
+  // Show the weatherList container
+  weatherList.style.display = 'flex';
 }
 
 /**
- * Creates a weather card element based on the weather data and stadium information.
- * @param {Object} weatherData - The fetched weather data from OpenWeather API.
- * @param {Object} stadium - The stadium object associated with the weather data.
- * @returns {HTMLElement} - The constructed weather card element.
+ * Creates a weather card element with the provided data.
+ * @param {Object} weatherData - The weather data object.
+ * @param {Object} stadium - The stadium object.
+ * @returns {HTMLElement} - The weather card element.
  */
 function createWeatherCard(weatherData, stadium) {
-    const card = document.createElement('div');
-    card.className = 'game-card';
+  const card = document.createElement('div');
+  card.className = 'game-card';
 
-    const windSpeed = weatherData.wind ? Math.round(weatherData.wind.speed) : 'N/A';
-    const humidity = weatherData.main ? weatherData.main.humidity : 'N/A';
-    const feelsLike = weatherData.main ? Math.round(weatherData.main.feels_like) : 'N/A';
-    const temp = weatherData.main ? Math.round(weatherData.main.temp) : 'N/A';
-    const weatherDescription = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].description : '';
-    const weatherIcon = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].icon : '';
+  const windSpeed = weatherData.wind ? Math.round(weatherData.wind.speed) : 'N/A';
+  const humidity = weatherData.main ? weatherData.main.humidity : 'N/A';
+  let feelsLike = weatherData.main ? weatherData.main.feels_like : 'N/A';
+  let temp = weatherData.main ? weatherData.main.temp : 'N/A';
+  const weatherDescription = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].description : '';
+  const weatherIcon = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].icon : '';
 
-    card.innerHTML = `
-        <div class="weather-icon-container">
-            <img class="weather-icon" 
-                 src="https://openweathermap.org/img/w/${weatherIcon}.png" 
-                 alt="${weatherDescription}">
-            <div class="temperature">${temp}°F</div>
+  // Get temperature unit preference from localStorage
+  const temperatureUnit = localStorage.getItem('temperatureUnit') || 'F';
+
+  // Convert temperatures if unit is Celsius
+  let tempUnit = '°F';
+  if (temperatureUnit === 'C') {
+    temp = ((temp - 32) * (5 / 9)).toFixed(1);
+    feelsLike = ((feelsLike - 32) * (5 / 9)).toFixed(1);
+    tempUnit = '°C';
+  } else {
+    temp = temp.toFixed(1);
+    feelsLike = feelsLike.toFixed(1);
+  }
+
+  card.innerHTML = `
+    <div class="weather-icon-container">
+      <img class="weather-icon" 
+           src="https://openweathermap.org/img/w/${weatherIcon}.png" 
+           alt="${weatherDescription}">
+      <div class="temperature">${temp}${tempUnit}</div>
+    </div>
+    <div class="game-info">
+      <h3>${stadium.name}</h3>
+      <div class="team-name">${stadium.team}</div>
+      <div class="conditions">${capitalizeFirstLetter(weatherDescription)}</div>
+      <div class="weather-details">
+        <div class="detail">
+          <span class="label">Feels like:</span> 
+          <span class="value">${feelsLike}${tempUnit}</span>
         </div>
-        <div class="game-info">
-            <h3>${stadium.name}</h3>
-            <div class="team-name">${stadium.team}</div>
-            <div class="conditions">${capitalizeFirstLetter(weatherDescription)}</div>
-            <div class="weather-details">
-                <div class="detail">
-                    <span class="label">Feels like:</span> 
-                    <span class="value">${feelsLike}°F</span>
-                </div>
-                <div class="detail">
-                    <span class="label">Wind:</span> 
-                    <span class="value">${windSpeed} mph</span>
-                </div>
-                <div class="detail">
-                    <span class="label">Humidity:</span> 
-                    <span class="value">${humidity}%</span>
-                </div>
-            </div>
+        <div class="detail">
+          <span class="label">Wind:</span> 
+          <span class="value">${windSpeed} mph</span>
         </div>
-    `;
+        <div class="detail">
+          <span class="label">Humidity:</span> 
+          <span class="value">${humidity}%</span>
+        </div>
+      </div>
+    </div>
+  `;
 
-    return card;
+  return card;
 }
 
 /**
- * Capitalizes the first letter of a given string.
- * @param {string} text - The string to capitalize.
- * @returns {string} - The capitalized string.
+ * Capitalizes the first letter of a given text.
+ * @param {string} text - The text to capitalize.
+ * @returns {string} - The capitalized text.
  */
 function capitalizeFirstLetter(text) {
-    if (!text) return '';
-    return text.charAt(0).toUpperCase() + text.slice(1);
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+// Event listeners and other functions can be added below as needed
+
 
 /**
  * Handles date selection from the date picker.
@@ -471,6 +578,7 @@ function showSettings() {
         console.log('💾 Saving settings');
         const darkModeEnabled = modal.querySelector('#darkMode').checked;
         const apiKeyInput = modal.querySelector('#apiKey').value.trim();
+        const temperatureUnit = modal.querySelector('#temperatureUnit').value;
 
         // Save API key
         if (apiKeyInput) {
@@ -485,8 +593,11 @@ function showSettings() {
             document.body.classList.remove('dark-mode');
         }
 
-        // Save dark mode preference using localStorage
+        // Save dark mode preference
         localStorage.setItem('darkModeEnabled', darkModeEnabled);
+
+        // Save temperature unit preference
+        localStorage.setItem('temperatureUnit', temperatureUnit);
 
         // Close the modal
         closeModal();
@@ -559,6 +670,9 @@ function createSettingsModal() {
 
     const content = document.createElement('div');
     content.className = 'settings-content';
+
+    const temperatureUnit = localStorage.getItem('temperatureUnit') || 'F';
+
     content.innerHTML = `
         <h2>Settings</h2>
         <div class="settings-section">
@@ -569,6 +683,13 @@ function createSettingsModal() {
             <div class="setting-item">
                 <label for="darkMode">Dark Mode</label>
                 <input type="checkbox" id="darkMode" ${document.body.classList.contains('dark-mode') ? 'checked' : ''} />
+            </div>
+            <div class="setting-item">
+                <label for="temperatureUnit">Temperature Unit</label>
+                <select id="temperatureUnit">
+                    <option value="F" ${temperatureUnit === 'F' ? 'selected' : ''}>Fahrenheit (°F)</option>
+                    <option value="C" ${temperatureUnit === 'C' ? 'selected' : ''}>Celsius (°C)</option>
+                </select>
             </div>
         </div>
         <div class="settings-footer">
