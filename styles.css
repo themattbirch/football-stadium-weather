@@ -193,6 +193,11 @@ main {
   padding: 15px;
 }
 
+body.dark-mode .weather-container {
+  background-color: var(--card-background);
+  border-color: var(--secondary-color);
+}
+
 .weather-icon-container {
   display: flex;
   flex-direction: column;

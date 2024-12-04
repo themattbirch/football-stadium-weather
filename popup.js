@@ -24,21 +24,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Parse JSON and log the raw data
         const stadiumDataRaw = await stadiumDataResponse.json();
 
-        // Debugging logs
-        console.log('Raw JSON structure:', JSON.stringify(stadiumDataRaw, null, 2));
-        console.log('Keys in raw data:', Object.keys(stadiumDataRaw));
-        console.log('Raw data:', stadiumDataRaw);
-        console.log('Raw data type:', typeof stadiumDataRaw);
-        console.log('Has NFL data:', Boolean(stadiumDataRaw.nfl));
-        console.log('Has NCAA data:', Boolean(stadiumDataRaw.ncaa));
-
-        if (stadiumDataRaw.nfl) {
-            console.log('Number of NFL teams:', Object.keys(stadiumDataRaw.nfl).length);
-        }
-        if (stadiumDataRaw.ncaa) {
-            console.log('Number of NCAA teams:', Object.keys(stadiumDataRaw.ncaa).length);
-        }
-
         // Transform the data
         const transformedData = transformStadiumData(stadiumDataRaw);
 
@@ -99,9 +84,6 @@ function transformStadiumData(stadiumDataRaw) {
 
     const stadiumsArray = [];
 
-    // Log the raw data structure
-    console.log('Transforming data with keys:', Object.keys(stadiumDataRaw));
-
     try {
         // Process NFL stadiums
         if (stadiumDataRaw.nfl && typeof stadiumDataRaw.nfl === 'object') {
@@ -134,10 +116,6 @@ function transformStadiumData(stadiumDataRaw) {
                 }
             });
         }
-
-        console.log(`Transformed ${stadiumsArray.length} stadiums`);
-        console.log(`NFL teams: ${stadiumsArray.filter(s => s.league === 'NFL').length}`);
-        console.log(`NCAA teams: ${stadiumsArray.filter(s => s.league === 'NCAA').length}`);
 
         return { stadiums: stadiumsArray };
     } catch (error) {
