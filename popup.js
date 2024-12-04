@@ -1,11 +1,15 @@
 // Constants and Initializations
 const STADIUM_DATA_PATH = '/data/stadium_coordinates.json';
 let stadiumDataCache = null;
-let OPENWEATHER_API_KEY = localStorage.getItem('openweatherApiKey') || null;
+let OPENWEATHER_API_KEY = null;
 
 // Load the stadium data and initialize the app
 document.addEventListener('DOMContentLoaded', async function () {
     try {
+        // Initialize settings and API key
+        const settings = SettingsManager.init();
+        OPENWEATHER_API_KEY = settings.openweatherApiKey || null;
+
         // Get the full URL for the JSON file
         const jsonURL = chrome.runtime.getURL(STADIUM_DATA_PATH);
         console.log('Attempting to fetch from:', jsonURL);
@@ -57,7 +61,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 console.log(`✅ Adding ${config.event} listener to ${id}`);
                 element.addEventListener(config.event, config.handler);
             } else {
-                console.warn(`⚠️ Element with ID '${id}' not found`);
+                console.log(`ℹ️ Element with ID '${id}' not found`);
+
             }
         });
 
@@ -307,7 +312,7 @@ function handleCustomDropdownSelection(type, selectedValue) {
     }
 
     if (selectedStadium) {
-        fetchWeather(selectedStadium);
+        enhancedFetchWeather(selectedStadium);
     } else {
         const weatherList = document.getElementById('weatherList');
         if (weatherList) {
@@ -335,114 +340,254 @@ document.addEventListener('click', function () {
     closeAllDropdowns();
 });
 
-/**
- * Fetches weather data for the selected stadium by sending a message to the background script.
- * @param {Object} stadium - The selected stadium object.
- */
-function fetchWeather(stadium) {
-  if (!stadium) {
-    console.error('❌ No stadium provided to fetchWeather');
+function showLoadingIndicator() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'block';
+    }
+}
+
+function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+    }
+}
+
+function showErrorMessage(message) {
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = message;
+    }
+}
+
+function hideErrorMessage() {
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.style.display = 'none';
+        errorMessage.textContent = '';
+    }
+}
+
+function clearWeatherData() {
     const weatherList = document.getElementById('weatherList');
     if (weatherList) {
-      weatherList.innerHTML = '<div class="error-message">Stadium not found</div>';
-      weatherList.style.display = 'flex'; // Show the error message container
+        weatherList.innerHTML = '';
+        weatherList.style.display = 'none';
     }
-    return;
-  }
-
-  // Store stadium in localStorage for offline access
-  localStorage.setItem('lastStadium', JSON.stringify(stadium));
-
-  // Show loading indicator
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  const errorMessage = document.getElementById('errorMessage');
-
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'block';
-  }
-  const weatherList = document.getElementById('weatherList');
-  if (weatherList) {
-    weatherList.style.display = 'none'; // Hide weatherList while loading
-  }
-  if (errorMessage) {
-    errorMessage.style.display = 'none'; // Hide any previous error messages
-  }
-
-  if (!navigator.onLine) {
-    // User is offline
-    console.warn('⚠️ User is offline');
-    // Display an offline message or use cached data if available
-    const offlineMessage = document.getElementById('offlineMessage');
-    if (offlineMessage) {
-      offlineMessage.style.display = 'block';
-    }
-
-    // Try to retrieve cached weather data
-    const cachedData = localStorage.getItem('weatherData');
-    if (cachedData) {
-      const weatherData = JSON.parse(cachedData);
-      displayWeather(weatherData, stadium);
-    } else {
-      if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-      }
-      if (errorMessage) {
-        errorMessage.style.display = 'block';
-        errorMessage.textContent = 'You are offline and no cached data is available.';
-      }
-    }
-    return;
-  }
-
-  // Send a message to the background script to fetch weather data
-  chrome.runtime.sendMessage(
-    {
-      type: 'GET_WEATHER',
-      latitude: stadium.latitude,
-      longitude: stadium.longitude,
-    },
-    (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Message error:', chrome.runtime.lastError);
-        if (loadingIndicator) {
-          loadingIndicator.style.display = 'none';
-        }
-        if (errorMessage) {
-          errorMessage.style.display = 'block';
-          errorMessage.textContent = 'Could not communicate with background script.';
-        }
-        if (weatherList) {
-          weatherList.innerHTML = ''; // Clear any existing content
-          weatherList.style.display = 'none'; // Ensure it's hidden
-        }
-        return;
-      }
-      if (response.error) {
-        console.error('Weather fetch error:', response.error);
-        if (loadingIndicator) {
-          loadingIndicator.style.display = 'none';
-        }
-        if (errorMessage) {
-          errorMessage.style.display = 'block';
-          errorMessage.textContent = 'Could not load weather data.';
-        }
-        if (weatherList) {
-          weatherList.innerHTML = ''; // Clear any existing content
-          weatherList.style.display = 'none'; // Ensure it's hidden
-        }
-        return;
-      }
-      // Weather data fetched successfully
-      console.log('☁️ Weather data:', response);
-      if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-      }
-      // Store weather data for offline access
-      localStorage.setItem('weatherData', JSON.stringify(response));
-      displayWeather(response, stadium);
-    }
-  );
 }
+
+function showOfflineMessage() {
+    clearWeatherData(); // Clear any existing weather display
+    const weatherList = document.getElementById('weatherList');
+    if (weatherList) {
+        weatherList.innerHTML = `
+            <div class="offline-message">
+                <h3>You are offline</h3>
+                <p>Please check your internet connection and try again.</p>
+            </div>
+        `;
+        weatherList.style.display = 'flex';
+    }
+}
+
+/**
+ * Fetches weather data for the selected stadium, handling offline scenarios.
+ * @param {Object} stadium - The selected stadium object.
+ */
+// Option 1: Enhanced Error Handling and Recovery
+function enhancedFetchWeather(stadium) {
+    if (!stadium) {
+        console.error('❌ No stadium provided to fetchWeather');
+        showErrorMessage('Stadium not found');
+        hideLoadingIndicator();
+        return;
+    }
+
+    // Add retry mechanism
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    
+// Constants and Initializations const STADIUM_DATA_PATH = '/data/stadium_coordinates.json'; let stadiumDataCache = null; let OPENWEATHER_API_KEY = null; // Load the stadium data and initialize the a
+
+function attemptFetch() {
+    showLoadingIndicator();
+    clearWeatherData();
+    hideErrorMessage();
+
+    // Enhanced offline handling
+    if (!navigator.onLine) {
+    console.log('📡 Network status: offline');
+        clearWeatherData(); // Clear any existing weather display
+        
+        const weatherList = document.getElementById('weatherList');
+        if (weatherList) {
+            weatherList.innerHTML = `
+                <div class="offline-message">
+                    <h3>You are offline</h3>
+                    <p>Please check your internet connection and try again.</p>
+                </div>
+            `;
+            weatherList.style.display = 'flex';
+        }
+        
+        hideLoadingIndicator();
+        return;
+    }
+
+    // Online behavior - send message to background script
+    chrome.runtime.sendMessage(
+        {
+            type: 'GET_WEATHER',
+            latitude: stadium.latitude,
+            longitude: stadium.longitude,
+        },
+        (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Message error:', chrome.runtime.lastError);
+                handleFetchError('Communication error with background script');
+                return;
+            }
+
+            if (response.error) {
+                console.error('Weather fetch error:', response.error);
+                handleFetchError('Weather data fetch failed');
+                return;
+            }
+
+            // Store weather data with timestamp
+            try {
+                localStorage.setItem('weatherData', JSON.stringify(response));
+                localStorage.setItem('weatherDataTimestamp', Date.now().toString());
+                console.log('💾 Weather data cached successfully');
+            } catch (error) {
+                console.log('📝 Cache status: Failed to store weather data:', error);
+            }
+
+            hideLoadingIndicator();
+            displayWeather(response, stadium);
+        }
+    );
+}
+
+    function handleFetchError(errorMessage) {
+        if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`🔄 Retry attempt ${retryCount} of ${maxRetries}`);
+            setTimeout(attemptFetch, 1000 * retryCount); // Exponential backoff
+        } else {
+            hideLoadingIndicator();
+            showErrorMessage(`${errorMessage} (after ${maxRetries} retries)`);
+            // Try to use cached data as fallback
+            const cachedData = localStorage.getItem('weatherData');
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData);
+                    displayWeather(parsedData, stadium);
+                    showErrorMessage('Showing cached data due to fetch failure');
+                } catch (error) {
+                    console.error('Fallback cache error:', error);
+                }
+            }
+        }
+    }
+
+    attemptFetch();
+}
+
+const SettingsManager = {
+    defaults: {
+        darkMode: false,
+        temperatureUnit: 'F',
+        refreshInterval: 300000, // 5 minutes
+        retryAttempts: 3,
+        cacheExpiry: 3600000 // 1 hour
+    },
+
+    init() {
+        this.migrateOldSettings();
+        this.validateSettings();
+        return this.getAll();
+    },
+
+    migrateOldSettings() {
+        // Migrate individual settings to a unified structure
+        try {
+            const oldSettings = {
+                darkModeEnabled: localStorage.getItem('darkModeEnabled'),
+                temperatureUnit: localStorage.getItem('temperatureUnit'),
+                openweatherApiKey: localStorage.getItem('openweatherApiKey')
+            };
+
+            if (Object.values(oldSettings).some(value => value !== null)) {
+                const settings = this.getAll();
+                Object.entries(oldSettings).forEach(([key, value]) => {
+                    if (value !== null) {
+                        settings[key] = key === 'darkModeEnabled' ? value === 'true' : value;
+                    }
+                });
+                this.saveAll(settings);
+                
+                // Clean up old settings
+                Object.keys(oldSettings).forEach(key => localStorage.removeItem(key));
+                console.log('🔄 Settings migrated successfully');
+            }
+        } catch (error) {
+            console.error('Settings migration failed:', error);
+        }
+    },
+
+    validateSettings() {
+        const settings = this.getAll();
+        let needsSave = false;
+
+        // Ensure all defaults exist
+        Object.entries(this.defaults).forEach(([key, defaultValue]) => {
+            if (settings[key] === undefined) {
+                settings[key] = defaultValue;
+                needsSave = true;
+            }
+        });
+
+        // Validate specific settings
+        if (settings.refreshInterval < 60000) { // Minimum 1 minute
+            settings.refreshInterval = 60000;
+            needsSave = true;
+        }
+
+        if (settings.retryAttempts < 1 || settings.retryAttempts > 5) {
+            settings.retryAttempts = this.defaults.retryAttempts;
+            needsSave = true;
+        }
+
+        if (needsSave) {
+            this.saveAll(settings);
+        }
+    },
+
+    getAll() {
+        try {
+            const settings = localStorage.getItem('settings');
+            return settings ? JSON.parse(settings) : { ...this.defaults };
+        } catch (error) {
+            console.error('Error reading settings:', error);
+            return { ...this.defaults };
+        }
+    },
+
+    saveAll(settings) {
+        try {
+            localStorage.setItem('settings', JSON.stringify(settings));
+            return true;
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            return false;
+        }
+    }
+};
+
 
 /**
  * Displays the weather data in the UI.
@@ -450,6 +595,11 @@ function fetchWeather(stadium) {
  * @param {Object} stadium - The stadium object.
  */
 function displayWeather(weatherData, stadium) {
+  if (!weatherData || !weatherData.weather || !weatherData.main) {
+    showErrorMessage('Incomplete weather data.');
+    return;
+  }
+
   const weatherList = document.getElementById('weatherList');
   if (!weatherList) return;
 
@@ -463,6 +613,7 @@ function displayWeather(weatherData, stadium) {
   // Show the weatherList container
   weatherList.style.display = 'flex';
 }
+
 
 /**
  * Creates a weather card element with the provided data.
@@ -482,42 +633,45 @@ function createWeatherCard(weatherData, stadium) {
   const weatherIcon = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].icon : '';
 
   // Get temperature unit preference from localStorage
-  const temperatureUnit = localStorage.getItem('temperatureUnit') || 'F';
-
+    const settings = SettingsManager.getAll();
+    const temperatureUnit = settings.temperatureUnit;
+    
   // Convert temperatures if unit is Celsius
   let tempUnit = '°F';
-  if (temperatureUnit === 'C') {
+  if (temperatureUnit === 'C' && temp !== 'N/A' && feelsLike !== 'N/A') {
     temp = ((temp - 32) * (5 / 9)).toFixed(1);
     feelsLike = ((feelsLike - 32) * (5 / 9)).toFixed(1);
     tempUnit = '°C';
-  } else {
+  } else if (temp !== 'N/A' && feelsLike !== 'N/A') {
     temp = temp.toFixed(1);
     feelsLike = feelsLike.toFixed(1);
   }
 
   card.innerHTML = `
     <div class="weather-icon-container">
-      <img class="weather-icon" 
-           src="https://openweathermap.org/img/w/${weatherIcon}.png" 
-           alt="${weatherDescription}">
-      <div class="temperature">${temp}${tempUnit}</div>
+      ${
+        weatherIcon
+          ? `<img class="weather-icon" src="https://openweathermap.org/img/w/${weatherIcon}.png" alt="${weatherDescription}">`
+          : ''
+      }
+      <div class="temperature">${temp !== 'N/A' ? temp + tempUnit : 'N/A'}</div>
     </div>
     <div class="game-info">
-      <h3>${stadium.name}</h3>
-      <div class="team-name">${stadium.team}</div>
-      <div class="conditions">${capitalizeFirstLetter(weatherDescription)}</div>
+      <h3>${stadium.name || 'Unknown Stadium'}</h3>
+      <div class="team-name">${stadium.team || 'Unknown Team'}</div>
+      <div class="conditions">${capitalizeFirstLetter(weatherDescription) || 'N/A'}</div>
       <div class="weather-details">
         <div class="detail">
           <span class="label">Feels like:</span> 
-          <span class="value">${feelsLike}${tempUnit}</span>
+          <span class="value">${feelsLike !== 'N/A' ? feelsLike + tempUnit : 'N/A'}</span>
         </div>
         <div class="detail">
           <span class="label">Wind:</span> 
-          <span class="value">${windSpeed} mph</span>
+          <span class="value">${windSpeed !== 'N/A' ? windSpeed + ' mph' : 'N/A'}</span>
         </div>
         <div class="detail">
           <span class="label">Humidity:</span> 
-          <span class="value">${humidity}%</span>
+          <span class="value">${humidity !== 'N/A' ? humidity + '%' : 'N/A'}</span>
         </div>
       </div>
     </div>
@@ -525,6 +679,7 @@ function createWeatherCard(weatherData, stadium) {
 
   return card;
 }
+
 
 /**
  * Capitalizes the first letter of a given text.
@@ -575,36 +730,25 @@ function showSettings() {
     };
 
     saveBtn.addEventListener('click', () => {
-        console.log('💾 Saving settings');
-        const darkModeEnabled = modal.querySelector('#darkMode').checked;
-        const apiKeyInput = modal.querySelector('#apiKey').value.trim();
-        const temperatureUnit = modal.querySelector('#temperatureUnit').value;
+    console.log('💾 Saving settings');
+    const settings = SettingsManager.getAll();
+    
+    settings.darkMode = modal.querySelector('#darkMode').checked;
+    settings.openweatherApiKey = modal.querySelector('#apiKey').value.trim();
+    settings.temperatureUnit = modal.querySelector('#temperatureUnit').value;
 
-        // Save API key
-        if (apiKeyInput) {
-            OPENWEATHER_API_KEY = apiKeyInput;
-            localStorage.setItem('openweatherApiKey', OPENWEATHER_API_KEY);
-        }
+    SettingsManager.saveAll(settings);
+    
+    // Apply settings
+    if (settings.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
 
-        // Apply dark mode
-        if (darkModeEnabled) {
-            document.body.classList.add('dark-mode');
-        } else {
-            document.body.classList.remove('dark-mode');
-        }
-
-        // Save dark mode preference
-        localStorage.setItem('darkModeEnabled', darkModeEnabled);
-
-        // Save temperature unit preference
-        localStorage.setItem('temperatureUnit', temperatureUnit);
-
-        // Close the modal
-        closeModal();
-
-        // Refresh weather data after saving settings
-        refreshWeather();
-    });
+    closeModal();
+    refreshWeather();
+});
 
     cancelBtn.addEventListener('click', () => {
         console.log('❌ Cancel settings');
@@ -667,28 +811,27 @@ function refreshWeather() {
 function createSettingsModal() {
     const modal = document.createElement('div');
     modal.className = 'settings-modal';
-
     const content = document.createElement('div');
     content.className = 'settings-content';
 
-    const temperatureUnit = localStorage.getItem('temperatureUnit') || 'F';
+    const settings = SettingsManager.getAll(); // Get settings from SettingsManager
 
     content.innerHTML = `
         <h2>Settings</h2>
         <div class="settings-section">
             <div class="setting-item">
                 <label for="apiKey">OpenWeather API Key</label>
-                <input type="text" id="apiKey" placeholder="Enter API Key" value="${OPENWEATHER_API_KEY || ''}" />
+                <input type="text" id="apiKey" placeholder="Enter API Key" value="${settings.openweatherApiKey || ''}" />
             </div>
             <div class="setting-item">
                 <label for="darkMode">Dark Mode</label>
-                <input type="checkbox" id="darkMode" ${document.body.classList.contains('dark-mode') ? 'checked' : ''} />
+                <input type="checkbox" id="darkMode" ${settings.darkMode ? 'checked' : ''} />
             </div>
             <div class="setting-item">
                 <label for="temperatureUnit">Temperature Unit</label>
                 <select id="temperatureUnit">
-                    <option value="F" ${temperatureUnit === 'F' ? 'selected' : ''}>Fahrenheit (°F)</option>
-                    <option value="C" ${temperatureUnit === 'C' ? 'selected' : ''}>Celsius (°C)</option>
+                    <option value="F" ${settings.temperatureUnit === 'F' ? 'selected' : ''}>Fahrenheit (°F)</option>
+                    <option value="C" ${settings.temperatureUnit === 'C' ? 'selected' : ''}>Celsius (°C)</option>
                 </select>
             </div>
         </div>
@@ -697,7 +840,6 @@ function createSettingsModal() {
             <button class="save-btn">Save</button>
         </div>
     `;
-
     modal.appendChild(content);
     return modal;
 }
@@ -706,8 +848,8 @@ function createSettingsModal() {
  * Initializes dark mode based on saved preference.
  */
 function initializeDarkMode() {
-    const darkModeEnabled = localStorage.getItem('darkModeEnabled') === 'true';
-    if (darkModeEnabled) {
+    const settings = SettingsManager.getAll();
+    if (settings.darkMode) {
         document.body.classList.add('dark-mode');
     } else {
         document.body.classList.remove('dark-mode');
