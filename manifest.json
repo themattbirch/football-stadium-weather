@@ -7,7 +7,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://api.openweathermap.org/*"
+    "https://y-seven-pi.vercel.app/*"
   ],
   "action": {
     "default_popup": "index.html",
@@ -20,6 +20,16 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "runtime.js"
+      ]
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": [
@@ -36,5 +46,6 @@
     "16": "icons/football16.png",
     "48": "icons/football48.png",
     "128": "icons/football128.png"
-  }
+  },
+  "offline_enabled": true
 }

@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     try {
         // Initialize settings and API key
         const settings = SettingsManager.init();
-        OPENWEATHER_API_KEY = settings.openweatherApiKey || null;
 
         // Get the full URL for the JSON file
         const jsonURL = chrome.runtime.getURL(STADIUM_DATA_PATH);
@@ -491,12 +490,11 @@ const SettingsManager = {
     },
 
     migrateOldSettings() {
-        // Migrate individual settings to a unified structure
+        // Remove openweatherApiKey from migration logic
         try {
             const oldSettings = {
                 darkModeEnabled: localStorage.getItem('darkModeEnabled'),
                 temperatureUnit: localStorage.getItem('temperatureUnit'),
-                openweatherApiKey: localStorage.getItem('openweatherApiKey')
             };
 
             if (Object.values(oldSettings).some(value => value !== null)) {
@@ -507,7 +505,7 @@ const SettingsManager = {
                     }
                 });
                 this.saveAll(settings);
-                
+
                 // Clean up old settings
                 Object.keys(oldSettings).forEach(key => localStorage.removeItem(key));
                 console.log('🔄 Settings migrated successfully');
@@ -565,7 +563,6 @@ const SettingsManager = {
         }
     }
 };
-
 
 /**
  * Displays the weather data in the UI.
@@ -708,25 +705,27 @@ function showSettings() {
     };
 
     saveBtn.addEventListener('click', () => {
-    console.log('💾 Saving settings');
-    const settings = SettingsManager.getAll();
-    
-    settings.darkMode = modal.querySelector('#darkMode').checked;
-    settings.openweatherApiKey = modal.querySelector('#apiKey').value.trim();
-    settings.temperatureUnit = modal.querySelector('#temperatureUnit').value;
+        console.log('💾 Saving settings');
+        const darkModeEnabled = modal.querySelector('#darkMode').checked;
+        const temperatureUnit = modal.querySelector('#temperatureUnit').value;
 
-    SettingsManager.saveAll(settings);
-    
-    // Apply settings
-    if (settings.darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
-    }
+        // Apply dark mode
+        if (darkModeEnabled) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
 
-    closeModal();
-    refreshWeather();
-});
+        // Save preferences
+        localStorage.setItem('darkModeEnabled', darkModeEnabled);
+        localStorage.setItem('temperatureUnit', temperatureUnit);
+
+        // Close the modal
+        closeModal();
+
+        // Refresh weather data after saving settings
+        refreshWeather();
+    });
 
     cancelBtn.addEventListener('click', () => {
         console.log('❌ Cancel settings');
@@ -741,6 +740,7 @@ function showSettings() {
         }
     });
 }
+
 
 /**
  * Refreshes the weather data based on the selected team.
@@ -792,32 +792,35 @@ function createSettingsModal() {
     const content = document.createElement('div');
     content.className = 'settings-content';
 
-    const settings = SettingsManager.getAll(); // Get settings from SettingsManager
+    const settings = SettingsManager.getAll();
 
     content.innerHTML = `
-        <h2>Settings</h2>
-        <div class="settings-section">
-            <div class="setting-item">
-                <label for="apiKey">OpenWeather API Key</label>
-                <input type="text" id="apiKey" placeholder="Enter API Key" value="${settings.openweatherApiKey || ''}" />
-            </div>
-            <div class="setting-item">
-                <label for="darkMode">Dark Mode</label>
-                <input type="checkbox" id="darkMode" ${settings.darkMode ? 'checked' : ''} />
-            </div>
-            <div class="setting-item">
-                <label for="temperatureUnit">Temperature Unit</label>
-                <select id="temperatureUnit">
-                    <option value="F" ${settings.temperatureUnit === 'F' ? 'selected' : ''}>Fahrenheit (°F)</option>
-                    <option value="C" ${settings.temperatureUnit === 'C' ? 'selected' : ''}>Celsius (°C)</option>
-                </select>
-            </div>
+    <h2>Settings</h2>
+    <div class="settings-section">
+        <div class="setting-item">
+            <label for="darkMode">Dark Mode</label>
+            <input type="checkbox" id="darkMode" ${settings.darkMode ? 'checked' : ''} />
         </div>
-        <div class="settings-footer">
+        <div class="setting-item">
+            <label for="temperatureUnit">Temperature Unit</label>
+            <select id="temperatureUnit">
+                <option value="F" ${settings.temperatureUnit === 'F' ? 'selected' : ''}>Fahrenheit (°F)</option>
+                <option value="C" ${settings.temperatureUnit === 'C' ? 'selected' : ''}>Celsius (°C)</option>
+            </select>
+        </div>
+    </div>
+    <div class="settings-footer">
+        <div class="privacy-policy-container">
+            <a href="https://y-seven-pi.vercel.app/privacy.html" target="_blank" class="privacy-link">
+                Privacy Policy
+            </a>
+        </div>
+        <div class="button-container">
             <button class="cancel-btn">Cancel</button>
             <button class="save-btn">Save</button>
         </div>
-    `;
+    </div>
+`;
     modal.appendChild(content);
     return modal;
 }

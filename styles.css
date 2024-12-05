@@ -331,6 +331,20 @@ body.dark-mode .weather-container {
   font-weight: normal;
 }
 
+body.dark-mode .date-selector input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* For Firefox */
+body.dark-mode .date-selector input[type="date"]::-moz-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* For other browsers */
+body.dark-mode .date-selector input[type="date"]::-ms-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 /* Add these to prevent dropdown overflow */
 select[size] {
   max-height: 300px !important;
@@ -413,9 +427,42 @@ footer {
 
 .settings-footer {
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.privacy-policy-container {
+  text-align: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--secondary-color);
+  border-bottom: 1px solid var(--secondary-color);
+}
+
+.privacy-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 0.9em;
+  padding: 5px 10px;
+  transition: all 0.3s ease;
+}
+
+.privacy-link:hover {
+  color: var(--stadium-gray);
+}
+
+body.dark-mode .privacy-link {
+  color: var(--text-color);
+}
+
+body.dark-mode .privacy-link:hover {
+  color: var(--button-text-color);
+}
+
+.button-container {
+  display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 20px;
 }
 
 /* Buttons in Settings Modal */
