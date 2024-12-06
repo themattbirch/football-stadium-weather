@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Football Stadium Weather",
-  "version": "1.1.0",
+  "version": "1.1.5",
   "description": "Get updated weather information for NFL and college football (NCAAF) stadiums.",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
-    "https://y-seven-pi.vercel.app/*"
+    "https://stadiumweather.app/*"
   ],
   "action": {
     "default_popup": "index.html",
@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://y-seven-pi.vercel.app/*"
+        "https://stadiumweather.app/*"
       ],
       "js": [
         "runtime.js"
@@ -38,7 +38,7 @@
         "styles.css"
       ],
       "matches": [
-        "https://y-seven-pi.vercel.app/*"
+        "https://stadiumweather.app/*"
       ]
     }
   ],
