@@ -18,7 +18,6 @@
   --modal-bg-color: #ffffff;
   --font-size-large: 16px;
   --font-size-medium: 14px;
-  /* New variables */
   --hover-background-color: var(--primary-color);
   --hover-text-color: var(--button-text-color);
   --value-color: #333333;
@@ -36,7 +35,6 @@ body.dark-mode {
   --button-text-color: #fff;
   --input-background: #2c2c2c;
   --input-text-color: #e0e0e0;
-  /* New variables */
   --hover-background-color: var(--secondary-color);
   --hover-text-color: var(--button-text-color);
   --value-color: #e0e0e0;
@@ -58,12 +56,9 @@ body {
   padding: 15px;
   position: relative;
   max-height: 600px;
-  /* Changed from height to max-height */
   overflow-y: auto;
-  /* Allows vertical scrolling */
   box-sizing: border-box;
   background-color: var(--background-color);
-  /* Ensures consistent background */
 }
 
 main {
@@ -71,7 +66,6 @@ main {
   z-index: 1;
   overflow-y: auto;
   padding-right: 5px;
-  /* Prevent scroll bar from causing horizontal scroll */
 }
 
 /* Ensure content doesn't overflow */
@@ -126,7 +120,6 @@ main {
   color: var(--secondary-color);
 }
 
-/* Team Selection Styles */
 .team-dropdown {
   position: relative;
   max-width: 100%;
@@ -136,7 +129,6 @@ main {
 .team-dropdown select {
   width: 100%;
   padding: 8px 30px 8px 12px;
-  /* Maintains space for the arrow */
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid var(--secondary-color);
@@ -144,7 +136,6 @@ main {
   background-color: var(--input-background);
   color: var(--input-text-color);
   font-size: var(--font-size-medium);
-  /* Uses CSS variable for consistency */
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -172,7 +163,6 @@ main {
   margin-top: 15px;
 }
 
-/* Weather Card Styles */
 .game-card {
   display: flex;
   align-items: center;
@@ -184,7 +174,6 @@ main {
 
 .weather-container {
   display: none;
-  /* Hidden by default */
   flex-direction: column;
   gap: 10px;
   background-color: white;
@@ -252,7 +241,6 @@ body.dark-mode .weather-container {
   color: var(--value-color);
 }
 
-/* Loading Indicator Styles */
 .loading {
   text-align: center;
   padding: 20px;
@@ -277,7 +265,6 @@ body.dark-mode .weather-container {
   }
 }
 
-/* Error Message Styles */
 .error-message {
   background-color: #fff3cd;
   color: #856404;
@@ -288,7 +275,6 @@ body.dark-mode .weather-container {
   text-align: center;
 }
 
-/* Controls Styles */
 .controls {
   display: flex;
   justify-content: space-between;
@@ -309,7 +295,6 @@ body.dark-mode .weather-container {
   font-size: 14px !important;
   /* Force consistent size */
   height: 36px;
-  /* Fixed height */
   padding: 0 10px;
   width: 130px;
   border: 1px solid var(--secondary-color);
@@ -327,7 +312,6 @@ body.dark-mode .weather-container {
 /* Date label consistent sizing */
 .date-selector label {
   font-size: 14px !important;
-  /* Force consistent size */
   font-weight: normal;
 }
 
@@ -345,13 +329,11 @@ body.dark-mode .date-selector input[type="date"]::-ms-calendar-picker-indicator 
   filter: invert(1);
 }
 
-/* Add these to prevent dropdown overflow */
 select[size] {
   max-height: 300px !important;
   overflow-y: auto !important;
 }
 
-/* Ensure proper stacking context */
 .header {
   position: relative;
   z-index: 2;
@@ -382,7 +364,6 @@ select[size] {
 
 .cancel-btn:hover {
   background-color: #da190b;
-  /* Slightly darker red for hover effect */
 }
 
 /* Footer Styles */
@@ -423,6 +404,7 @@ footer {
 /* Settings Content */
 .settings-content h2 {
   margin-top: 0;
+  text-align: center;
 }
 
 .settings-footer {
@@ -434,7 +416,7 @@ footer {
 
 .privacy-policy-container {
   text-align: center;
-  padding: 10px 0;
+  padding: 15px 0;
   border-top: 1px solid var(--secondary-color);
   border-bottom: 1px solid var(--secondary-color);
 }
@@ -442,9 +424,10 @@ footer {
 .privacy-link {
   color: var(--primary-color);
   text-decoration: none;
-  font-size: 0.9em;
-  padding: 5px 10px;
+  font-size: 1.1em;
+  padding: 8px 12px;
   transition: all 0.3s ease;
+  display: inline-block;
 }
 
 .privacy-link:hover {
@@ -461,32 +444,29 @@ body.dark-mode .privacy-link:hover {
 
 .button-container {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 10px;
+  width: 100%;
 }
 
 /* Buttons in Settings Modal */
 .settings-footer .save-btn,
 .settings-footer .cancel-btn {
   padding: 10px 20px;
-  /* Increased padding */
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
   font-size: 1em;
-  /* Increased font size */
 }
 
 .settings-footer .save-btn {
   background-color: #4CAF50;
-  /* Green */
   color: white;
 }
 
 .settings-footer .cancel-btn {
   background-color: #f44336;
-  /* Red */
   color: white;
 }
 
@@ -496,6 +476,14 @@ body.dark-mode .privacy-link:hover {
 
 .settings-footer .cancel-btn:hover {
   background-color: #da190b;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 20px;
 }
 
 body.dark-mode .settings-modal {
@@ -540,7 +528,6 @@ body.dark-mode .setting-item {
   max-height: 250px;
 }
 
-/* Focus styles for accessibility */
 .custom-dropdown:focus,
 .dropdown-search input:focus,
 .primary-button:focus,
@@ -550,7 +537,6 @@ body.dark-mode .setting-item {
   outline: 2px solid var(--primary-color);
 }
 
-/* Add styles for the search input */
 .dropdown-search {
   padding: 8px 12px;
   border-bottom: 1px solid var(--secondary-color);
@@ -577,27 +563,40 @@ body.dark-mode .setting-item {
 }
 
 .dropdown-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin: 0;
-  padding: 0;
   list-style: none;
+  /* Removes bullet points */
+  padding-left: 0;
+  /* Removes default padding that might be causing indentation */
+}
+
+.dropdown-list,
+.custom-dropdown .dropdown-list {
+  display: none;
+}
+
+.custom-dropdown.active .dropdown-list {
+  display: block;
+  max-height: 300px;
+  overflow-y: auto;
   background-color: var(--input-background);
   border: 1px solid var(--secondary-color);
-  border-radius: 0 0 4px 4px;
-  overflow-y: auto;
-  display: none;
-  z-index: 100;
+  border-radius: 4px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-list li:focus {
+  background-color: var(--hover-background-color);
+  color: var(--hover-text-color);
+  outline: none;
 }
 
 .dropdown-list li {
   padding: 8px 12px;
   cursor: pointer;
+  list-style-type: none;
 }
 
-/* Hover Effect */
 .dropdown-list li:hover {
   background-color: var(--hover-background-color);
   color: var(--hover-text-color);
@@ -608,7 +607,6 @@ body.dark-mode .setting-item {
   display: block;
 }
 
-/* Add or update these CSS rules */
 #weatherList {
   display: flex;
   justify-content: center;
@@ -640,7 +638,6 @@ body.dark-mode .setting-item {
 @media (max-width: 480px) {
   .team-dropdown {
     margin-bottom: 10px;
-    /* Adjusted spacing for smaller screens */
   }
 
   .game-card {
@@ -655,8 +652,6 @@ body.dark-mode .setting-item {
 
   .date-selector input[type="date"] {
     max-width: 150px;
-    /* Adjusted max width for smaller screens */
     font-size: 1em;
-    /* Ensure readability */
   }
 }
