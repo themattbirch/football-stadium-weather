@@ -1,0 +1,1 @@
+{"private":true,"dependencies":{"types-registry":"^0.1.697"},"devDependencies":{"@types/fs-extra":"^11.0.4","@types/graceful-fs":"^4.1.9","@types/offline-js":"^0.7.32","@types/react":"^18.3.13","@types/react-dom":"^18.3.1","@types/webpack":"^5.28.5"}}
