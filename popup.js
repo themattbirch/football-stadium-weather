@@ -853,7 +853,7 @@ function createSettingsModal() {
     </div>
     <div class="settings-footer">
         <div class="privacy-policy-container">
-            <a href="https://y-seven-pi.vercel.app/privacy.html" target="_blank" class="privacy-link">
+            <a href="https://stadiumweather.app/privacy.html" target="_blank" class="privacy-link">
                 Privacy Policy
             </a>
         </div>

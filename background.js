@@ -1,20 +1,20 @@
-const CACHE_NAME = 'gameday-weather-v1';
-const SERVER_URL = 'https://y-seven-pi.vercel.app'; // Replace with your server URL
+const CACHE_NAME = "gameday-weather-v1";
+const SERVER_URL = "https://stadiumweather.app";
 
 // Install event
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing.');
+self.addEventListener("install", (event) => {
+  console.log("Service Worker installing.");
   event.waitUntil(self.skipWaiting());
 });
 
 // Activate event
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating.');
+self.addEventListener("activate", (event) => {
+  console.log("Service Worker activating.");
   event.waitUntil(self.clients.claim());
 });
 
 // Fetch event
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   const requestURL = new URL(event.request.url);
 
   // Handle requests to the custom server API
@@ -24,16 +24,19 @@ self.addEventListener('fetch', (event) => {
         try {
           const response = await fetch(event.request);
           if (!response.ok) {
-            console.error('API response not ok:', response.status);
+            console.error("API response not ok:", response.status);
           }
           return response;
         } catch (error) {
-          console.error('❌ Network error while fetching data from the server:', error);
+          console.error(
+            "❌ Network error while fetching data from the server:",
+            error
+          );
           return new Response(
-            JSON.stringify({ error: 'Network error or server unavailable' }),
+            JSON.stringify({ error: "Network error or server unavailable" }),
             {
               status: 503,
-              headers: { 'Content-Type': 'application/json' },
+              headers: { "Content-Type": "application/json" },
             }
           );
         }
@@ -46,19 +49,19 @@ self.addEventListener('fetch', (event) => {
 
 // Message listener for fetching weather data
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'GET_WEATHER') {
-    console.log('🌦️ Weather request received:', {
+  if (request.type === "GET_WEATHER") {
+    console.log("🌦️ Weather request received:", {
       lat: request.latitude,
       lon: request.longitude,
     });
 
     fetchWeather(request.latitude, request.longitude)
       .then((data) => {
-        console.log('🌤️ Weather data fetched:', data);
+        console.log("🌤️ Weather data fetched:", data);
         sendResponse(data);
       })
       .catch((error) => {
-        console.error('❌ Weather fetch error:', error);
+        console.error("❌ Weather fetch error:", error);
         sendResponse({ error: error.message });
       });
 
@@ -75,24 +78,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function fetchWeather(lat, lon) {
   const url = `${SERVER_URL}/api/weather?lat=${lat}&lon=${lon}`;
-  console.log('🌍 Fetching weather from server:', url);
+  console.log("🌍 Fetching weather from server:", url);
 
   try {
     const response = await fetch(url);
-    console.log('📡 Server Response Status:', response.status);
+    console.log("📡 Server Response Status:", response.status);
 
     if (!response.ok) {
       throw new Error(`Weather API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('📦 Weather Data:', data);
+    console.log("📦 Weather Data:", data);
     return data;
   } catch (error) {
-    console.error('❌ Fetch Weather Error:', error);
+    console.error("❌ Fetch Weather Error:", error);
     throw error;
   }
 }
 
 // Optional: Log service worker initialization
-console.log('🚀 Service Worker is active and running.');
+console.log("🚀 Service Worker is active and running.");

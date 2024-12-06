@@ -1,12 +1,12 @@
 // runtime.js
-console.log('Runtime script loaded');
+console.log("Runtime script loaded");
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'LOG_MESSAGE') {
-    console.log('Log from content script:', message.content);
+  if (message.type === "LOG_MESSAGE") {
+    console.log("Log from content script:", message.content);
   }
 
-  if (message.type === 'FETCH_WEATHER') {
+  if (message.type === "FETCH_WEATHER") {
     const { lat, lon } = message;
     console.log(`Fetching weather for lat: ${lat}, lon: ${lon}`);
     fetchWeather(lat, lon).then(sendResponse).catch(sendResponse);
@@ -15,8 +15,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function fetchWeather(lat, lon) {
-  const url = `https://y-seven-pi.vercel.app/api/weather?lat=${lat}&lon=${lon}`;
-  console.log('Fetching weather from:', url);
+  const url = `https://stadiumweather.app/api/weather?lat=${lat}&lon=${lon}`;
+  console.log("Fetching weather from:", url);
 
   try {
     const response = await fetch(url);
@@ -24,7 +24,7 @@ async function fetchWeather(lat, lon) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching weather:', error);
+    console.error("Error fetching weather:", error);
     throw error;
   }
 }
