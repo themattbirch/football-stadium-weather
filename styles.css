@@ -478,12 +478,21 @@ body.dark-mode .privacy-link:hover {
   background-color: #da190b;
 }
 
-.setting-item {
+s.setting-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  gap: 20px;
+  padding: 0 2px;
+}
+
+.setting-item select {
+  padding: 4px 8px;
+  border: 1px solid var(--secondary-color);
+  border-radius: 4px;
+  background-color: var(--input-background);
+  color: var(--input-text-color);
+  margin-left: 2px;
 }
 
 body.dark-mode .settings-modal {
