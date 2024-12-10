@@ -3,36 +3,116 @@ const STADIUM_DATA_PATH = "/data/stadium_coordinates.json";
 let stadiumDataCache = null;
 let OPENWEATHER_API_KEY = null;
 
-// Load the stadium data + initialize app
+// Settings Manager - Single Source of Truth
+const SettingsManager = {
+  defaults: {
+    darkMode: false,
+    temperatureUnit: "F",
+    refreshInterval: 300000,
+    retryAttempts: 3,
+    cacheExpiry: 3600000,
+  },
+
+  init() {
+    console.log("🔧 Initializing SettingsManager");
+    this.migrateOldSettings();
+    this.validateSettings();
+    const settings = this.getAll();
+    console.log("📊 Initial settings:", settings);
+    return settings;
+  },
+
+  migrateOldSettings() {
+    try {
+      const oldSettings = {
+        darkModeEnabled: localStorage.getItem("darkModeEnabled"),
+        temperatureUnit: localStorage.getItem("temperatureUnit"),
+      };
+      console.log("🔄 Found old settings:", oldSettings);
+
+      if (Object.values(oldSettings).some((value) => value !== null)) {
+        const settings = this.getAll();
+        Object.entries(oldSettings).forEach(([key, value]) => {
+          if (value !== null) {
+            settings[key] =
+              key === "darkModeEnabled" ? value === "true" : value;
+          }
+        });
+        this.saveAll(settings);
+        Object.keys(oldSettings).forEach((key) => localStorage.removeItem(key));
+        console.log("✅ Settings migrated successfully:", settings);
+      }
+    } catch (error) {
+      console.error("Settings migration failed:", error);
+    }
+  },
+
+  validateSettings() {
+    const settings = this.getAll();
+    let needsSave = false;
+
+    Object.entries(this.defaults).forEach(([key, defaultValue]) => {
+      if (settings[key] === undefined) {
+        settings[key] = defaultValue;
+        needsSave = true;
+      }
+    });
+
+    if (settings.refreshInterval < 60000) {
+      settings.refreshInterval = 60000;
+      needsSave = true;
+    }
+
+    if (settings.retryAttempts < 1 || settings.retryAttempts > 5) {
+      settings.retryAttempts = this.defaults.retryAttempts;
+      needsSave = true;
+    }
+
+    if (needsSave) {
+      this.saveAll(settings);
+    }
+  },
+
+  getAll() {
+    try {
+      const settings = localStorage.getItem("settings");
+      return settings ? JSON.parse(settings) : { ...this.defaults };
+    } catch (error) {
+      console.error("Error reading settings:", error);
+      return { ...this.defaults };
+    }
+  },
+
+  saveAll(settings) {
+    try {
+      localStorage.setItem("settings", JSON.stringify(settings));
+      console.log("💾 Saved settings:", settings);
+      return true;
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      return false;
+    }
+  },
+};
+
+// Main Initialization
 document.addEventListener("DOMContentLoaded", async function () {
   try {
-    // Initialize settings + API key
     const settings = SettingsManager.init();
+    console.log("🚀 App initializing with settings:", settings);
 
-    // Get the full URL for JSON file
     const jsonURL = chrome.runtime.getURL(STADIUM_DATA_PATH);
-    console.log("Attempting to fetch from:", jsonURL);
-
-    // Fetch stadium data
     const stadiumDataResponse = await fetch(jsonURL);
 
     if (!stadiumDataResponse.ok) {
       throw new Error(`HTTP error! status: ${stadiumDataResponse.status}`);
     }
 
-    // Parse JSON + log raw data
     const stadiumDataRaw = await stadiumDataResponse.json();
+    stadiumDataCache = transformStadiumData(stadiumDataRaw);
 
-    // Transform the data
-    const transformedData = transformStadiumData(stadiumDataRaw);
-
-    // Cache transformed data
-    stadiumDataCache = transformedData;
-
-    // Populate custom dropdowns
     populateDropdowns(stadiumDataCache);
 
-    // Event listeners for settings, date picker, and refresh button
     const elements = {
       "weather-date": { handler: handleDateSelection, event: "change" },
       refresh: { handler: refreshWeather, event: "click" },
@@ -49,10 +129,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     });
 
-    // Initialize dark mode based on saved preference
     initializeDarkMode();
 
-    // Ensure weatherList is hidden on initial load
     const weatherList = document.getElementById("weatherList");
     if (weatherList) {
       weatherList.style.display = "none";
@@ -63,16 +141,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     const weatherList = document.getElementById("weatherList");
     if (weatherList) {
       weatherList.innerHTML = `<div class="error-message">Failed to load stadium data: ${error.message}</div>`;
-      weatherList.style.display = "none"; // Ensure it's hidden on error
+      weatherList.style.display = "none";
     }
   }
 });
 
-/**
- * Transforms raw stadium data into a structured format.
- * @param {Object} stadiumDataRaw - The raw JSON data fetched from the JSON file.
- * @returns {Object} - An object containing an array of stadiums.
- */
 function transformStadiumData(stadiumDataRaw) {
   if (!stadiumDataRaw || typeof stadiumDataRaw !== "object") {
     console.error("Invalid stadium data received:", stadiumDataRaw);
@@ -82,7 +155,6 @@ function transformStadiumData(stadiumDataRaw) {
   const stadiumsArray = [];
 
   try {
-    // Process NFL stadiums
     if (stadiumDataRaw.nfl && typeof stadiumDataRaw.nfl === "object") {
       Object.entries(stadiumDataRaw.nfl).forEach(([name, info]) => {
         if (info && typeof info === "object") {
@@ -98,7 +170,6 @@ function transformStadiumData(stadiumDataRaw) {
       });
     }
 
-    // Process NCAA stadiums
     if (stadiumDataRaw.ncaa && typeof stadiumDataRaw.ncaa === "object") {
       Object.entries(stadiumDataRaw.ncaa).forEach(([name, info]) => {
         if (info && typeof info === "object") {
@@ -121,10 +192,6 @@ function transformStadiumData(stadiumDataRaw) {
   }
 }
 
-/**
- * Populates the custom dropdowns with team options.
- * @param {Object} stadiumData - The transformed stadium data.
- */
 function populateDropdowns(stadiumData) {
   populateCustomDropdown(
     "nfl",
@@ -136,11 +203,6 @@ function populateDropdowns(stadiumData) {
   );
 }
 
-/**
- * Populates a custom dropdown with options and adds search functionality.
- * @param {string} type - 'nfl' or 'college'.
- * @param {Array} teams - Array of stadium objects.
- */
 function populateCustomDropdown(type, teams) {
   const dropdown = document.getElementById(`${type}-dropdown`);
   if (!dropdown) return;
@@ -148,10 +210,8 @@ function populateCustomDropdown(type, teams) {
   const dropdownList = dropdown.querySelector(".dropdown-list");
   if (!dropdownList) return;
 
-  // Clear existing options
   dropdownList.innerHTML = "";
 
-  // Add search input
   const searchItem = document.createElement("li");
   searchItem.className = "dropdown-search";
   searchItem.innerHTML = '<input type="text" placeholder="Search teams..." />';
@@ -159,7 +219,6 @@ function populateCustomDropdown(type, teams) {
 
   const searchInput = searchItem.querySelector("input");
 
-  // Create a Set of unique team names
   const teamNames = new Set();
   teams.forEach((stadium) => {
     if (stadium.team) {
@@ -168,13 +227,11 @@ function populateCustomDropdown(type, teams) {
     }
   });
 
-  // Add 'All' option
   const allOption = document.createElement("li");
   allOption.textContent = type === "nfl" ? "NFL Teams" : "College Teams";
   allOption.dataset.value = "all";
   dropdownList.appendChild(allOption);
 
-  // Create list items
   const teamListItems = [];
   Array.from(teamNames)
     .sort()
@@ -186,19 +243,17 @@ function populateCustomDropdown(type, teams) {
       teamListItems.push(listItem);
     });
 
-  // Event listeners for dropdown
+  // Event listeners
   dropdown.addEventListener("click", function (event) {
     event.stopPropagation();
     closeAllDropdowns(this);
     this.classList.toggle("active");
-    // Focus on the search input when dropdown is opened
     if (this.classList.contains("active")) {
       searchInput.focus();
     }
-    // Ensure the scroll position is reset
     const dropdownList = this.querySelector(".dropdown-list");
     if (dropdownList) {
-      dropdownList.scrollTop = 0; // Reset scroll position on open
+      dropdownList.scrollTop = 0;
     }
   });
 
@@ -216,12 +271,11 @@ function populateCustomDropdown(type, teams) {
     }
   });
 
-  // Handle keyboard navigation
   dropdown.addEventListener("keydown", function (event) {
     const active = dropdown.classList.contains("active");
     const dropdownList = this.querySelector(".dropdown-list");
 
-    if (!dropdownList) return; // Guard clause
+    if (!dropdownList) return;
 
     if (event.key === "Enter") {
       event.preventDefault();
@@ -232,10 +286,10 @@ function populateCustomDropdown(type, teams) {
           )
         );
         if (visibleItems.length > 0) {
-          visibleItems[0].click(); // Select first visible item
+          visibleItems[0].click();
         }
       } else {
-        dropdown.click(); // Open dropdown
+        dropdown.click();
       }
     } else if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -256,7 +310,6 @@ function populateCustomDropdown(type, teams) {
     }
   });
 
-  // Add input event listener for search functionality
   searchInput.addEventListener("input", function () {
     const filter = searchInput.value.toLowerCase();
     teamListItems.forEach((item) => {
@@ -270,15 +323,9 @@ function populateCustomDropdown(type, teams) {
   });
 }
 
-/**
- * Handles selection from a custom dropdown.
- * @param {string} type - 'nfl' or 'college'.
- * @param {string} selectedValue - The selected team value.
- */
 function handleCustomDropdownSelection(type, selectedValue) {
   console.log(`Selected ${type} team:`, selectedValue);
 
-  // Reset the other dropdown
   const otherType = type === "nfl" ? "college" : "nfl";
   const otherDropdown = document.getElementById(`${otherType}-dropdown`);
   if (otherDropdown) {
@@ -286,9 +333,7 @@ function handleCustomDropdownSelection(type, selectedValue) {
       otherType === "nfl" ? "NFL Teams" : "College Teams";
   }
 
-  // Proceed with fetching weather
   if (selectedValue === "all") {
-    // Handle 'all' selection
     const weatherList = document.getElementById("weatherList");
     if (weatherList) {
       weatherList.innerHTML = "";
@@ -303,7 +348,6 @@ function handleCustomDropdownSelection(type, selectedValue) {
   );
 
   if (!selectedStadium) {
-    // Attempt partial match
     selectedStadium = stadiumDataCache.stadiums.find(
       (s) =>
         s.team.toLowerCase().includes(selectedValue.toLowerCase()) &&
@@ -323,10 +367,6 @@ function handleCustomDropdownSelection(type, selectedValue) {
   }
 }
 
-/**
- * Closes all open custom dropdowns except the current one.
- * @param {HTMLElement} currentDropdown - The dropdown to keep open.
- */
 function closeAllDropdowns(currentDropdown) {
   const dropdowns = document.querySelectorAll(".custom-dropdown.active");
   dropdowns.forEach((dropdown) => {
@@ -336,7 +376,6 @@ function closeAllDropdowns(currentDropdown) {
   });
 }
 
-// Close dropdowns when clicking outside
 document.addEventListener("click", function () {
   closeAllDropdowns();
 });
@@ -380,24 +419,19 @@ function clearWeatherData() {
 }
 
 function showOfflineMessage() {
-  clearWeatherData(); // Clear any existing weather display
+  clearWeatherData();
   const weatherList = document.getElementById("weatherList");
   if (weatherList) {
     weatherList.innerHTML = `
-            <div class="offline-message">
-                <h3>You are offline</h3>
-                <p>Please check your internet connection and try again.</p>
-            </div>
-        `;
+      <div class="offline-message">
+        <h3>You are offline</h3>
+        <p>Please check your internet connection and try again.</p>
+      </div>
+    `;
     weatherList.style.display = "flex";
   }
 }
 
-/**
- * Fetches weather data for the selected stadium, handling offline scenarios.
- * @param {Object} stadium - The selected stadium object.
- */
-// Option 1: Enhanced Error Handling and Recovery
 function enhancedFetchWeather(stadium) {
   if (!stadium) {
     console.error("❌ No stadium provided to fetchWeather");
@@ -406,29 +440,26 @@ function enhancedFetchWeather(stadium) {
     return;
   }
 
-  // Add retry mechanism
   let retryCount = 0;
   const maxRetries = 3;
 
-  // Constants and Initializations
   function attemptFetch() {
     showLoadingIndicator();
     clearWeatherData();
     hideErrorMessage();
 
-    // Enhanced offline handling
     if (!navigator.onLine) {
       console.log("📡 Network status: offline");
-      clearWeatherData(); // Clear any existing weather display
+      clearWeatherData();
 
       const weatherList = document.getElementById("weatherList");
       if (weatherList) {
         weatherList.innerHTML = `
-                <div class="offline-message">
-                    <h3>You are offline</h3>
-                    <p>Please check your internet connection and try again.</p>
-                </div>
-            `;
+          <div class="offline-message">
+            <h3>You are offline</h3>
+            <p>Please check your internet connection and try again.</p>
+          </div>
+        `;
         weatherList.style.display = "flex";
       }
 
@@ -436,7 +467,6 @@ function enhancedFetchWeather(stadium) {
       return;
     }
 
-    // Online behavior - send message to background script
     chrome.runtime.sendMessage(
       {
         type: "GET_WEATHER",
@@ -456,7 +486,6 @@ function enhancedFetchWeather(stadium) {
           return;
         }
 
-        // Store weather data with timestamp
         try {
           localStorage.setItem("weatherData", JSON.stringify(response));
           localStorage.setItem("weatherDataTimestamp", Date.now().toString());
@@ -475,11 +504,10 @@ function enhancedFetchWeather(stadium) {
     if (retryCount < maxRetries) {
       retryCount++;
       console.log(`🔄 Retry attempt ${retryCount} of ${maxRetries}`);
-      setTimeout(attemptFetch, 1000 * retryCount); // Exponential backoff
+      setTimeout(attemptFetch, 1000 * retryCount);
     } else {
       hideLoadingIndicator();
       showErrorMessage(`${errorMessage} (after ${maxRetries} retries)`);
-      // Try to use cached data as fallback
       const cachedData = localStorage.getItem("weatherData");
       if (cachedData) {
         try {
@@ -496,103 +524,6 @@ function enhancedFetchWeather(stadium) {
   attemptFetch();
 }
 
-const SettingsManager = {
-  defaults: {
-    darkMode: false,
-    temperatureUnit: "F",
-    refreshInterval: 300000,
-    retryAttempts: 3,
-    cacheExpiry: 3600000,
-  },
-
-  init() {
-    this.migrateOldSettings();
-    this.validateSettings();
-    return this.getAll();
-  },
-
-  migrateOldSettings() {
-    // Remove openweatherApiKey from migration logic
-    try {
-      const oldSettings = {
-        darkModeEnabled: localStorage.getItem("darkModeEnabled"),
-        temperatureUnit: localStorage.getItem("temperatureUnit"),
-      };
-
-      if (Object.values(oldSettings).some((value) => value !== null)) {
-        const settings = this.getAll();
-        Object.entries(oldSettings).forEach(([key, value]) => {
-          if (value !== null) {
-            settings[key] =
-              key === "darkModeEnabled" ? value === "true" : value;
-          }
-        });
-        this.saveAll(settings);
-
-        // Clean up old settings
-        Object.keys(oldSettings).forEach((key) => localStorage.removeItem(key));
-        console.log("🔄 Settings migrated successfully");
-      }
-    } catch (error) {
-      console.error("Settings migration failed:", error);
-    }
-  },
-
-  validateSettings() {
-    const settings = this.getAll();
-    let needsSave = false;
-
-    // Ensure all defaults exist
-    Object.entries(this.defaults).forEach(([key, defaultValue]) => {
-      if (settings[key] === undefined) {
-        settings[key] = defaultValue;
-        needsSave = true;
-      }
-    });
-
-    // Validate specific settings
-    if (settings.refreshInterval < 60000) {
-      // Minimum 1 minute
-      settings.refreshInterval = 60000;
-      needsSave = true;
-    }
-
-    if (settings.retryAttempts < 1 || settings.retryAttempts > 5) {
-      settings.retryAttempts = this.defaults.retryAttempts;
-      needsSave = true;
-    }
-
-    if (needsSave) {
-      this.saveAll(settings);
-    }
-  },
-
-  getAll() {
-    try {
-      const settings = localStorage.getItem("settings");
-      return settings ? JSON.parse(settings) : { ...this.defaults };
-    } catch (error) {
-      console.error("Error reading settings:", error);
-      return { ...this.defaults };
-    }
-  },
-
-  saveAll(settings) {
-    try {
-      localStorage.setItem("settings", JSON.stringify(settings));
-      return true;
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      return false;
-    }
-  },
-};
-
-/**
- * Displays the weather data in the UI.
- * @param {Object} weatherData - The weather data object.
- * @param {Object} stadium - The stadium object.
- */
 function displayWeather(weatherData, stadium) {
   if (!weatherData || !weatherData.weather || !weatherData.main) {
     showErrorMessage("Incomplete weather data.");
@@ -602,23 +533,12 @@ function displayWeather(weatherData, stadium) {
   const weatherList = document.getElementById("weatherList");
   if (!weatherList) return;
 
-  // Clear existing content
   weatherList.innerHTML = "";
-
-  // Create weather card
   const weatherCard = createWeatherCard(weatherData, stadium);
   weatherList.appendChild(weatherCard);
-
-  // Show the weatherList container
   weatherList.style.display = "flex";
 }
 
-/**
- * Creates a weather card element with the provided data.
- * @param {Object} weatherData - The weather data object.
- * @param {Object} stadium - The stadium object.
- * @returns {HTMLElement} - The weather card element.
- */
 function createWeatherCard(weatherData, stadium) {
   const card = document.createElement("div");
   card.className = "game-card";
@@ -638,19 +558,28 @@ function createWeatherCard(weatherData, stadium) {
       ? weatherData.weather[0].icon
       : "";
 
-  // Get temperature unit preference from localStorage
+  // Get temperature unit preference from SettingsManager
   const settings = SettingsManager.getAll();
+  console.log("🌡️ Temperature settings:", settings);
   const temperatureUnit = settings.temperatureUnit;
 
   // Convert temperatures if unit is Celsius
   let tempUnit = "°F";
   if (temperatureUnit === "C" && temp !== "N/A" && feelsLike !== "N/A") {
-    temp = ((temp - 32) * (5 / 9)).toFixed(1);
-    feelsLike = ((feelsLike - 32) * (5 / 9)).toFixed(1);
+    // Ensure we're working with numbers
+    temp = parseFloat(temp);
+    feelsLike = parseFloat(feelsLike);
+    console.log("🔄 Converting to Celsius from:", { temp, feelsLike });
+
+    // Convert Fahrenheit to Celsius
+    temp = (((temp - 32) * 5) / 9).toFixed(1);
+    feelsLike = (((feelsLike - 32) * 5) / 9).toFixed(1);
     tempUnit = "°C";
+    console.log("✅ Converted to Celsius:", { temp, feelsLike });
   } else if (temp !== "N/A" && feelsLike !== "N/A") {
-    temp = temp.toFixed(1);
-    feelsLike = feelsLike.toFixed(1);
+    // Still format Fahrenheit temperatures
+    temp = parseFloat(temp).toFixed(1);
+    feelsLike = parseFloat(feelsLike).toFixed(1);
   }
 
   card.innerHTML = `
@@ -694,36 +623,8 @@ function createWeatherCard(weatherData, stadium) {
   return card;
 }
 
-/**
- * Capitalizes the first letter of a given text.
- * @param {string} text - The text to capitalize.
- * @returns {string} - The capitalized text.
- */
-function capitalizeFirstLetter(text) {
-  if (!text) return "";
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-// Event listeners and other functions can be added below as needed
-
-/**
- * Handles date selection from the date picker.
- * @param {Event} event - The change event from the date picker.
- */
-function handleDateSelection(event) {
-  const selectedDate = event.target.value;
-  console.log("📅 Date selected:", selectedDate);
-
-  // Future implementation for handling date changes
-  // For example, filter weather data based on selected date
-}
-
-//Shows the settings modal
-
 function showSettings() {
   console.log("⚙️ Opening settings");
-
-  // Create and display the settings modal
   const modal = createSettingsModal();
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
@@ -731,7 +632,6 @@ function showSettings() {
   document.body.appendChild(overlay);
   document.body.appendChild(modal);
 
-  // Add event listeners for 'Save' and 'Cancel' buttons
   const saveBtn = modal.querySelector(".save-btn");
   const cancelBtn = modal.querySelector(".cancel-btn");
 
@@ -742,34 +642,32 @@ function showSettings() {
 
   saveBtn.addEventListener("click", () => {
     console.log("💾 Saving settings");
-    const darkModeEnabled = modal.querySelector("#darkMode").checked;
-    const temperatureUnit = modal.querySelector("#temperatureUnit").value;
+
+    // Get settings using SettingsManager
+    const settings = SettingsManager.getAll();
+
+    // Update settings object
+    settings.darkMode = modal.querySelector("#darkMode").checked;
+    settings.temperatureUnit = modal.querySelector("#temperatureUnit").value;
+
+    // Save using SettingsManager
+    SettingsManager.saveAll(settings);
+    console.log("✅ Updated settings:", settings);
 
     // Apply dark mode
-    if (darkModeEnabled) {
+    if (settings.darkMode) {
       document.body.classList.add("dark-mode");
     } else {
       document.body.classList.remove("dark-mode");
     }
 
-    // Save preferences
-    localStorage.setItem("darkModeEnabled", darkModeEnabled);
-    localStorage.setItem("temperatureUnit", temperatureUnit);
-
-    // Close the modal
     closeModal();
 
-    // Refresh weather data after saving settings
+    // Refresh weather display with new settings
     refreshWeather();
   });
 
-  cancelBtn.addEventListener("click", () => {
-    console.log("❌ Cancel settings");
-    // Simply close the modal without saving
-    closeModal();
-  });
-
-  // Close modal when clicking outside of it
+  cancelBtn.addEventListener("click", closeModal);
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) {
       closeModal();
@@ -777,58 +675,15 @@ function showSettings() {
   });
 }
 
-// Refreshes the weather data based on the selected team.
-
-function refreshWeather() {
-  // Get selected team from custom dropdowns
-  const nflDropdown = document.getElementById("nfl-dropdown");
-  const collegeDropdown = document.getElementById("college-dropdown");
-
-  let selectedTeam = null;
-  let dropdownType = null;
-
-  const nflSelectedText =
-    nflDropdown.querySelector(".dropdown-selected").textContent;
-  const collegeSelectedText =
-    collegeDropdown.querySelector(".dropdown-selected").textContent;
-
-  if (nflSelectedText && nflSelectedText !== "NFL Teams") {
-    selectedTeam = nflSelectedText;
-    dropdownType = "nfl";
-  } else if (collegeSelectedText && collegeSelectedText !== "College Teams") {
-    selectedTeam = collegeSelectedText;
-    dropdownType = "college";
-  }
-
-  console.log("🔄 Refreshing weather for:", { selectedTeam, dropdownType });
-
-  if (selectedTeam) {
-    handleCustomDropdownSelection(dropdownType, selectedTeam);
-  } else {
-    console.log("⚠️ No team selected for refresh");
-    const weatherList = document.getElementById("weatherList");
-    const errorMessage = document.getElementById("errorMessage");
-    if (weatherList) {
-      weatherList.innerHTML = "";
-      weatherList.style.display = "none"; // Hide weatherList when no team is selected
-    }
-    if (errorMessage) {
-      errorMessage.style.display = "none"; // Hide any error messages
-    }
-  }
-}
-
-/**
- * Creates the settings modal element.
- * @returns {HTMLElement} - The constructed settings modal element.
- */
 function createSettingsModal() {
   const modal = document.createElement("div");
   modal.className = "settings-modal";
   const content = document.createElement("div");
   content.className = "settings-content";
 
+  // Get current settings using SettingsManager
   const settings = SettingsManager.getAll();
+  console.log("📊 Current settings for modal:", settings);
 
   content.innerHTML = `
     <h2>Settings</h2>
@@ -862,12 +717,54 @@ function createSettingsModal() {
             <button class="save-btn">Save</button>
         </div>
     </div>
-`;
+  `;
   modal.appendChild(content);
   return modal;
 }
 
-//Initializes dark mode based on saved preference.
+function refreshWeather() {
+  const nflDropdown = document.getElementById("nfl-dropdown");
+  const collegeDropdown = document.getElementById("college-dropdown");
+
+  let selectedTeam = null;
+  let dropdownType = null;
+
+  const nflSelectedText =
+    nflDropdown.querySelector(".dropdown-selected").textContent;
+  const collegeSelectedText =
+    collegeDropdown.querySelector(".dropdown-selected").textContent;
+
+  if (nflSelectedText && nflSelectedText !== "NFL Teams") {
+    selectedTeam = nflSelectedText;
+    dropdownType = "nfl";
+  } else if (collegeSelectedText && collegeSelectedText !== "College Teams") {
+    selectedTeam = collegeSelectedText;
+    dropdownType = "college";
+  }
+
+  console.log("🔄 Refreshing weather for:", { selectedTeam, dropdownType });
+
+  if (selectedTeam) {
+    handleCustomDropdownSelection(dropdownType, selectedTeam);
+  } else {
+    console.log("⚠️ No team selected for refresh");
+    const weatherList = document.getElementById("weatherList");
+    const errorMessage = document.getElementById("errorMessage");
+    if (weatherList) {
+      weatherList.innerHTML = "";
+      weatherList.style.display = "none";
+    }
+    if (errorMessage) {
+      errorMessage.style.display = "none";
+    }
+  }
+}
+
+function handleDateSelection(event) {
+  const selectedDate = event.target.value;
+  console.log("📅 Date selected:", selectedDate);
+}
+
 function initializeDarkMode() {
   const settings = SettingsManager.getAll();
   if (settings.darkMode) {
@@ -875,4 +772,9 @@ function initializeDarkMode() {
   } else {
     document.body.classList.remove("dark-mode");
   }
+}
+
+function capitalizeFirstLetter(text) {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
